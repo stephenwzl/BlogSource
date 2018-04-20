@@ -4,7 +4,7 @@ date: 2017-06-29 19:24:04
 tags:
 ---
 
-<img src="http://cdn.stephenw.cc/wp-content/uploads/2017/06/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-29-%E4%B8%8B%E5%8D%881.42.46.png" style="max-width: 350px;"/>  
+<img src="/images/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-29-%E4%B8%8B%E5%8D%881.42.46.png" style="max-width: 350px;"/>  
 
 objc 的 Runtime 是一个被网络热帖说烂了的词，好事者还喜欢给它套上一个“黑魔法”的帽子。然而，这个世界上没有什么魔法，一切都是可以从科学角度解释的，它也不仅仅是在头文件里面罗列的几个 C函数。本文我们来探讨一下 objc 的 Runtime 是什么。
 

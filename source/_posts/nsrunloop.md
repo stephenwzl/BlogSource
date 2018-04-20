@@ -18,7 +18,7 @@ NSRunloop是 CFRunloop的 objc的表现，他们是 toll-free bridge（也就是
 
 不过，直接看 CFRunloop的实现并不是什么好主意，因为它还不够抽象。先解释一下 NSRunloop是如何表示线程所需执行的内容的。如下图：
 
-<img src="http://cdn.stephenw.cc/wp-content/uploads/2017/06/Group-2-768x663.png" style="max-width:350px"/>
+<img src="/images/Group-2-768x663.png" style="max-width:350px"/>
 
 一个 NSRunloop可以在每次执行时选择一个 Mode，然后依次执行其中的每一个 Performer，所以一个 NSRunloop可以有多个 Mode，但不能在一次执行周期内切换到其他 Mode。默认情况下，一个 NSRunloop的 Mode有“两个”，一个叫 DefaultMode，另一个叫 CommonMode。但 CommonMode并不是一个真正意义上的 Mode，它代表的是当前这个 Runloop的所有 Mode（但还是有很多 Mode不会接受 CommonMode的 Performer，但通常情况下你碰不到）。比如你需要往一个 NSRunloop添加一个 Performer来做一些事情，并且希望这个 Performer无论在那种 Mode下都能得到回调，那么你需要把它添加到 CommonMode里面去，这样 NSRunloop会遍历自己的 Modes，然后往每一个 Mode的 set里面都插一个你的 Performer。一个典型的应用案例就是你需要一个计时器，你需要添加到 CommonMode，这样即使 UIScrollView在滑动时进入了 UITrackingRunloopMode，你的计时器仍然能得到正确的回调。
 
@@ -102,11 +102,11 @@ _RD_CFRunLoop *currentRunloop = (void *)CFRunLoopGetMain();
 ```
 
 然后我们直接打断点，在 Xcode控制台中先预览一下这些结构有哪些值。
-![](http://cdn.stephenw.cc/wp-content/uploads/2017/06/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-17-10.17.02-768x607.png)
+![](/images/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-17-10.17.02-768x607.png)
 
 这时候可以直接打印一下 _commonModes的值看一下
 
-![](http://cdn.stephenw.cc/wp-content/uploads/2017/06/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-17-10.23.54.png)
+![](/images/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-17-10.23.54.png)
 
 可以看到 mainRunloop的 commonMode只有两个，一个是 UITrackingRunloopMode，另一个是 kCFRunLoopDefaultMode。然后我们还可以看一下 _currentMode（图就不列了），name是 UIInitializationRunLoopMode（此时的调用栈处于 app didFinishLaunching），这个 Mode很明显不是 commonMode，所以我们给 commonMode添加的回调不会存在于这个 mode中。
 

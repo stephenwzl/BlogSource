@@ -45,7 +45,7 @@ typedef enum {
 同样地，Clang的 AST中，类型的表示就是 Type，具体到某个语言的类型时便可以派生出 **PointerType**（指针类型）、**ObjCObjectType**（objc对象类型）、**BuiltinType**（内置基础数据类型）这些表示。
 在 Clang的定义中，编程语言中无外乎包含三个东西：Type(类型），Decl(声明），Stmt（陈述），通过这三者的联结、重复或选择（alternative)就能构成一门编程语言。举个例子，下图的一段代码：
 
-<img src="http://cdn.stephenw.cc/wp-content/uploads/2018/01/BNF.png" style="max-width:350px"/>
+<img src="/images/BNF.png" style="max-width:350px"/>
 
 FunctionDecl、ParmVarDecl 都是基于 Decl派生的类，CompoundStmt、ReturnStmt、DeclStmt都是基于 Stmt派生的类。）
 
@@ -71,7 +71,7 @@ clang -Xclang -ast-dump -fsyntax-only test.c
 
 结果如图所示：
 
-![](http://cdn.stephenw.cc/wp-content/uploads/2018/01/ast-dump.png)
+![](/images/ast-dump.png)
 
 可以看到， Clang AST的最顶层结构叫做 **TranslationUnit**，我们管它叫做“编译单元”。它的子节点前面跟了很多个 **TypedefDecl**，这些都是 Clang的内置定义，可以先不用管。然后我们碰到了 **FunctionDecl**，整体结构和我们上文例举的图基本一致，但是它的层次要更丰富一点，原理一致就不赘述了。
 
@@ -190,7 +190,7 @@ $ ./findNameClass "namespace ClangTutorial { class Demo {}; }"
 
 如图所示
 
-![](http://cdn.stephenw.cc/wp-content/uploads/2018/01/decl-dump.png)
+![](/images/decl-dump.png)
 
 我们已经能实现查找到指定的符号定义并 dump出来了，但是还没想到如何具体地获取它的位置等信息，要解决这个问题我们需要再引入一个概念。
 

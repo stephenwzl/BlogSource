@@ -3,7 +3,7 @@ title: 客户端路由重写引擎 — enginx
 date: 2017-08-29 19:50:48
 tags:
 ---
-<img src="http://cdn.stephenw.cc/wp-content/uploads/2017/08/TB1MVRfLVXXXXaKaXXXXXXXXXXX-800-545-768x523.jpg" style="max-width: 350px;"/>  
+<img src="/images/TB1MVRfLVXXXXaKaXXXXXXXXXXX-800-545-768x523.jpg" style="max-width: 350px;"/>  
 （上面图片来源 心动网络）  
 很多手机 App的用户量动辄上千万，客户端的动态化是一个非常热门的话题，我也准备蹭一波热度。
 
@@ -34,7 +34,7 @@ eleme://restaurant?restaurant_id=9527
 看名称而言就是模仿 nginx的相关模块。用法也是差不多，给一个配置文件或字符串，输入 URL 字符串，输出目标字符串，就这么简单。
 
 但从概念上，enginx 把一个 URL 划分为同 server，同 location 这些域来进行匹配操作，概念上也是和 nginx 非常像的。
-![](http://cdn.stephenw.cc/wp-content/uploads/2017/08/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-08-29-%E4%B8%8B%E5%8D%884.04.34-768x610.png)
+![](/images/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-08-29-%E4%B8%8B%E5%8D%884.04.34-768x610.png)
 
 
 具体的代码引用我就不多作解释了，看一下如何通过一个配置文件完成一条 URL 的重写：

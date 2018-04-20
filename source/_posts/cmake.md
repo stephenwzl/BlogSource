@@ -4,7 +4,7 @@ date: 2017-12-25 20:00:43
 tags:
 ---
 
-![](http://cdn.stephenw.cc/wp-content/uploads/2017/12/20171219190328.png)
+![](/images/20171219190328.png)
 
 如果你需要经常看众多开源的项目，尤其是 C/C++编写的项目，你一定要学会 CMake的基本使用。
 
