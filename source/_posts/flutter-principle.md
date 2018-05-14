@@ -79,7 +79,7 @@ engine在真正需要执行资源 bundle时才会创建 Dart执行的环境（�
 # VSync信号的同步
 要让视图动态化，仅仅能实现视图绘制还不行，还得知道硬件何时发送了 VSync信号，通过获取 VSync信号，计算并给 GPU提供数据来构建动态化的界面。不过每个平台的 VSync信号的获取方式不太一样，我们这里讨论一下 iOS上的实现，以此管中窥豹。   
 
-> 源码获取于构建参见[附录]()
+> 源码获取于构建参见[附录](#附录)
 
 在 `flutter/shell/platform/darwin/ios/framework/source/FlutterView.mm`实现里面可以看到，在 UIView的 CALayer delegate中调用了 `SnapshotContentsSync`函数，这个函数会回调到 GPU线程，从 GPU线程执行获取 `LayerTree`，计算并合成位图，然后把位图信息传递给 Skia引擎，Skia引擎通过 `CGContextRef`把位图信息传递给 GPU。  
 
@@ -203,3 +203,50 @@ Flutter SDK是 dynamic framework，如此大的二进制体积可能会造成动
 
 # The End
 本期 Flutter原理的简解就到这儿，其实主要是高谈阔论了一番 Flutter Engine的实现。至于 Flutter的 UI Framework，稍候几天再水一篇吧。😜
+
+
+# 附录
+**构建 Flutter Engine （for iOS)**  
+1. fork `engine` 项目
+2. 设置开发环境
+    * Mac (Xcode 9.0)
+    * Python >= 2.7.10
+    * 安装 depot_tools (Google工具链)  
+        
+        ```
+        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+        ```
+        修改 .bashrc (zsh 修改 .zshrc)，把 depot_tools添加到环境变量中  
+        
+        ```
+        export PATH=$PATH:<替换这里的目录路径为你的地址>/depot_tools
+        ```
+        上述操作完成后重启命令行客户端使设置生效
+    * 确认你的命令行有工具命令 `curl` 和 `wget`
+    * 如果使用了 Mac，确认安装 `brew install ant`
+
+3. 把你的 engine项目拉到本地，存放目录就叫做 engine
+4. 在 engine 目录中创建文件 `.gclient`, 填写内容如下：
+    ```
+    solutions = [
+        {
+            "managed": False,
+            "name": "src/flutter",
+            "url": "git@github.com:<这里换成你的 github ID>/engine.git",
+            "custom_deps": {},
+            "deps_file": "DEPS",
+            "safesync_url": "",
+        },
+    ]
+    ```
+5. 在 `engine`目录下执行命令 `gclient sync`, 此操作需要命令行网络代理 ，推荐使用 ShadowSocksX-NG
+6. 在步骤5完成后，engine目录下会多出一个 src目录，这个目录是真正写代码、编译的地方。这个目录下，添加 git upstream 源：
+    ```
+    git remote add upstream https://github.com/flutter/engine.git
+    ```
+    在进行下一步前，确保代码是最新，进行 fetch -> pull rebase upstream master
+
+7. 在 src目录下面，执行命令：`./flutter/tools/gn --ios --simulator --unoptimized` 生成编译文件
+8. 在 src目录下，执行编译命令：`ninja -C out/ios_debug_sim_unopt`
+9. 编译完成后可以在 `out/ios_debug_sim_unopt`目录下找到 `Flutter.framework`文件，即可集成进 iOS工程
+10. 打开 `all.xcworkspace`即可查看 Flutter源码
