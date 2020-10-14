@@ -1,34 +1,34 @@
 ---
-title: 详解 NSRunloop
+title: Detailed NSRunloop
 date: 2017-06-19 19:02:16
 tags:
 ---
-NSRunloop是 macOS和 iOS中最基本的事件循环机制，也可以理解为 Apple工程师们做的线程抽象。本文将逐步讲解 NSRunloop的概念和原理，以及在实际工程中的一些运用。
+NSRunloop is the most basic event loop mechanism in macOS and iOS, and it can also be understood as a thread abstraction made by Apple engineers. This article will explain the concept and principle of NSRunloop step by step, as well as some applications in actual engineering.
 <!--more-->
 
-# NSThread和 NSRunloop
-无疑，NSThread和 NSRunloop是一一对应的。这么说没毛病，但也算不上好的解释。实际上，在早期 Foundation的实现中（可能现在的实现也是），NSRunloop是 NSThread对象的一个引用属性，或者直接一点，可以说就是一个 ivar (instance variable)。NSThread持有一个叫做 ThreadInfo的结构体，这个结构体的一个成员就是 NSRunloop。并不是 NSThread在创建的时候就会产生 NSRunloop，它只会在被引用的时候才会出现（懒加载）。
+# NSThread and NSRunloop
+Undoubtedly, NSThread and NSRunloop have a one-to-one correspondence. That's fine, but it's not a good explanation. In fact, in the early implementation of Foundation (maybe the current implementation is also), NSRunloop is a reference attribute of the NSThread object, or directly, it can be said to be an ivar (instance variable). NSThread holds a structure called ThreadInfo, a member of this structure is NSRunloop. It is not that NSThread will generate NSRunloop when it is created, it will only appear when it is referenced (lazy loading).
 
-但我们应该打破一下对 NSThread的刻板印象，因为 NSThread并不是线程，它只是 Foundation框架对 底层框架中 pthread操作的封装（POSIX Thread），而 pthread是由当前进程管理的，每个进程都会维护一个称之为 Key的结构体数组，NSThread并不可能持有 pthread，它只持有目标线程的 key，然后从进程获得 pthread的引用。
+But we should break the stereotype of NSThread, because NSThread is not a thread, it is just the Foundation framework's encapsulation of the pthread operation in the underlying framework (POSIX Thread), and pthread is managed by the current process, and each process maintains a name It is a key structure array. NSThread cannot hold a pthread. It only holds the key of the target thread, and then obtains a pthread reference from the process.
 
-但 pthread和 NSRunloop又扯上了什么关系？NSRunloop维持着 pthread所需要执行的内容，并且制定了这些内容的触发顺序和规则。具体是什么，请继续阅读下文。
+But what is the relationship between pthread and NSRunloop? NSRunloop maintains the content that pthread needs to execute, and formulates the trigger sequence and rules for these content. For details, please continue reading below.
 
-# NSRunloop的构成
-NSRunloop是 CFRunloop的 objc的表现，他们是 toll-free bridge（也就是不耗 CPU时间转换）的。值得高兴的是，CoreFoundation是开源的，我们完全可以查看 CFRunloop的实现，自从 Swift Language在 Github开源后，CoreFoundation的 Swift实现版本也放在了 Github上，这让我们可以比较 Modern的方式去看代码，地址在这儿：[swift-corelibs-foundation](https://github.com/apple/swift-corelibs-foundation)  其中包含了最新的 CoreFoundation实现，很兴奋。
+# NSRunloop composition
+NSRunloop is the performance of CFRunloop's objc. They are toll-free bridges (that is, conversion without CPU time). The good news is that CoreFoundation is open source. We can view the implementation of CFRunloop. Since Swift Language is open sourced on Github, the Swift implementation version of CoreFoundation has also been placed on Github. This allows us to compare the modern way to look at the code. The address is here: [swift-corelibs-foundation](https://github.com/apple/swift-corelibs-foundation) It contains the latest CoreFoundation implementation and I am very excited.
 
-不过，直接看 CFRunloop的实现并不是什么好主意，因为它还不够抽象。先解释一下 NSRunloop是如何表示线程所需执行的内容的。如下图：
+However, it is not a good idea to look directly at the implementation of CFRunloop, because it is not abstract enough. First, explain how NSRunloop expresses what the thread needs to execute. As shown below:
 
 <img src="/images/Group-2-768x663.png" style="max-width:350px"/>
 
-一个 NSRunloop可以在每次执行时选择一个 Mode，然后依次执行其中的每一个 Performer，所以一个 NSRunloop可以有多个 Mode，但不能在一次执行周期内切换到其他 Mode。默认情况下，一个 NSRunloop的 Mode有“两个”，一个叫 DefaultMode，另一个叫 CommonMode。但 CommonMode并不是一个真正意义上的 Mode，它代表的是当前这个 Runloop的所有 Mode（但还是有很多 Mode不会接受 CommonMode的 Performer，但通常情况下你碰不到）。比如你需要往一个 NSRunloop添加一个 Performer来做一些事情，并且希望这个 Performer无论在那种 Mode下都能得到回调，那么你需要把它添加到 CommonMode里面去，这样 NSRunloop会遍历自己的 Modes，然后往每一个 Mode的 set里面都插一个你的 Performer。一个典型的应用案例就是你需要一个计时器，你需要添加到 CommonMode，这样即使 UIScrollView在滑动时进入了 UITrackingRunloopMode，你的计时器仍然能得到正确的回调。
+An NSRunloop can select a Mode each time it is executed, and then execute each Performer in turn, so an NSRunloop can have multiple Modes, but it cannot be switched to other Modes in one execution cycle. By default, there are "two" modes for an NSRunloop, one is called DefaultMode and the other is called CommonMode. But CommonMode is not a real Mode, it represents all the Modes of the current Runloop (but there are still many Modes that will not accept CommonMode's Performer, but usually you can't touch it). For example, if you need to add a Performer to an NSRunloop to do something, and hope that this Performer can get a callback regardless of which Mode, then you need to add it to CommonMode, so that NSRunloop will traverse its own Modes, and then go to Insert your Performer into each Mode set. A typical application case is that you need a timer, you need to add it to CommonMode, so that even if the UIScrollView enters UITrackingRunloopMode when sliding, your timer can still get the correct callback.
 
-NSRunloop在一次 Mode周期执行完毕后这个线程将会进入休眠，在接收到唤醒事件后会根据唤醒的事件类型选择下次周期执行哪个 Mode。通常事件分为两种类型，一种是人为事件，比如代码调用，事件通知。还有一种是端口通信，这意味着是从其他进程传递过来的，最典型的例子是触摸屏，iOS中屏幕事件首先会传递给 SpringBoard，然后从端口把触屏事件传递给当前活跃的 App进程，这时候主线程会被“唤醒”（主线程其实不会休眠），假如触屏事件发生在一个 ScrollView上，这时候主线程的 Runloop就会进入 UITrackingRunloopMode。
+NSRunloop will go to sleep after the execution of a Mode cycle. After receiving a wake-up event, it will select which Mode to execute in the next cycle according to the type of wake-up event. Usually events are divided into two types, one is human events, such as code calls and event notifications. There is also port communication, which means it is passed from other processes. The most typical example is the touch screen. In iOS, screen events are first passed to SpringBoard, and then touch screen events are passed to the currently active App process from the port. At this time, the main thread will be "awakened" (the main thread does not actually sleep). If a touch screen event occurs on a ScrollView, the Runloop of the main thread will enter UITrackingRunloopMode at this time.
 
-# CFRunloop的构成
-其实到这儿，我们对 NSRunloop已经有了一个很清晰的了解了，但还需要继续往下挖的原因是 NSRunloop的实现并没有完全按照 CFRunloop的概念来，这也埋下了一些坑。[哈哈，想不到吧.jpg]
+# CFRunloop composition
+In fact, up to this point, we already have a clear understanding of NSRunloop, but the reason we need to continue to dig down is that the implementation of NSRunloop does not completely follow the concept of CFRunloop, which also buried some holes. [Haha, can't think of it.jpg]
 
-仔细瞅一眼 CFRunloop，它的概念划分层次和粒度和 NSRunloop几乎是完全不同的，值得欣慰的是，一次事件循环的基本单位仍然是 Mode，不同的是，Mode里的 performer（在 CoreFoundation这里被叫做 modeItem）被划分成了几个维度：Source、Timer、Observer。  所以在 Runloop添加 NSTimer的回调时，最终会被添加到 Timer这个集合里。不过 Source这个集合划分得还会更细一点：分为 Source0和 Source1，Source0是人为添加的执行动作，比如在当前线程上执行一个 selector等。Source1是端口事件，只会由端口触发。Observer便是回调了，Runloop在执行到某个阶段都会回调对应的 Observer。  值得一提的是，NSRunloop把这三者统一抽象为 Performer，但在操作 Runloop的底层结构时并没有用 CoreFoundation API，貌似只通过内存对齐实现。这就导致 **NSRunloop是非线程安全的**。但CoreFoundation API是线程安全的。
-**CFRunloopSourceRef** 是 CFRunloopSource的结构体指针，这个结构体长这样：
+Take a closer look at CFRunloop, its conceptual hierarchy and granularity are almost completely different from NSRunloop. It is gratifying that the basic unit of an event loop is still Mode. The difference is that the performer in Mode (called modeItem in CoreFoundation) ) Is divided into several dimensions: Source, Timer, Observer. So when the callback of NSTimer is added to Runloop, it will eventually be added to the Timer collection. However, the collection of Source can be divided into more detailed: Source0 and Source1. Source0 is an artificially added execution action, such as executing a selector on the current thread. Source1 is a port event and can only be triggered by the port. Observer is a callback. Runloop will call back the corresponding Observer at a certain stage of execution. It is worth mentioning that NSRunloop abstracts these three as Performer, but it does not use CoreFoundation API when operating the underlying structure of Runloop. It seems to be implemented only through memory alignment. This leads to **NSRunloop is not thread-safe**. But the CoreFoundation API is thread-safe.
+**CFRunloopSourceRef** is the structure pointer of CFRunloopSource, this structure looks like this:
 
 ```c
 struct __CFRunLoop {
@@ -51,14 +51,14 @@ struct __CFRunLoop {
 };
 ```
 
-这次我们就不一个字段一个字段去解释了，毕竟不少字段是在运行时用到的一些 Context，对我们理解 CFRunloop只会造成一些干扰。我们可以看到结构体里面有一个线程锁，注释也讲了用于获取 modes这些资源的锁。然后还有一个 \_wakeUpPort字段，用于标记这个 Runloop由哪个端口唤醒的。_perRunData字段用于抽象地表示每一次 Runloop在 Run的时候所必须的数据，volatile也很好地告诉编译器，这个指针的内容是经常会变的，不要做任何的读写优化。接下来 _commonModes用于标记 哪些 mode是 Common的，_commonModeItems用于标记哪些加入的 item是存在于 CommonModes里面的。_currentMode很好理解，就是一次 Runloop周期内所执行的具体的 Mode。
+This time we will not explain each field one by one. After all, many fields are some Context used at runtime, which will only cause some interference to our understanding of CFRunloop. We can see that there is a thread lock in the structure, and the comment also talks about the locks used to acquire the resources of modes. Then there is a \_wakeUpPort field to mark which port this Runloop wakes up from. The _perRunData field is used to abstractly represent the data necessary for each Runloop when it runs. Volatile also tells the compiler well that the content of this pointer will often change, so don't do any read-write optimization. Next, _commonModes is used to mark which modes are Common, and _commonModeItems is used to mark which added items are in CommonModes. _currentMode is well understood, it is the specific Mode executed in a Runloop cycle.
 
-接下来我们该看一下 CFRunloop中的三大金刚 Source, Timer和 Observer了。他们存在于 CFRunLoopMode中，它的结构是这样的：
+Next we should take a look at the three King Kong Source, Timer and Observer in CFRunloop. They exist in CFRunLoopMode, and its structure is like this:
 
 ```c
 struct __CFRunLoopMode {
     CFRuntimeBase _base;
-    pthread_mutex_t _lock;	/* must have the run loop locked before locking this */
+    pthread_mutex_t _lock; /* must have the run loop locked before locking this */
     CFStringRef _name;
     Boolean _stopped;
     char _padding[3];
@@ -88,29 +88,29 @@ struct __CFRunLoopMode {
 };
 ```
 
-我们还是尽量看能看得懂的部分。首先，又看到了一个 _lock，这同样用于访问 CFRunloopMode的资源时加锁。接着一个 Mode还会有一个名字，一个状态标记是否 stopped。接着，从字段名字就可以看到 source0, source1, observers, timers。除此之外，我们还可以看到 Runloop还可以执行 dispatch的 source和 queue，但很可惜它们字段的类型不是 CFMutableSetRef，也就是说一个 Runloop的 Mode只能执行一个 dispatch source/queue。
+We still try to look at the parts that can be understood. First, I saw another _lock, which is also used to lock when accessing CFRunloopMode resources. Then a Mode will also have a name and a status mark whether it is stopped. Then, you can see source0, source1, observers, timers from the field names. In addition, we can also see that Runloop can also execute dispatch source and queue, but unfortunately their field type is not CFMutableSetRef, which means that a Runloop Mode can only execute one dispatch source/queue.
 
-# 观察 App 的 Main Runloop
-通过 toll-free bridge，我们可以很直观地看一下默认情况下一个 iOS App的 Main Runloop是什么样的。为此，我 copy了一份 \_\_CFRunloop 的结构体声明，重命名为 _RD_CFRunloop (RD for runloop demo)，其他关联到的数据结构，不能自动 link的，也都 copy了一份，加上了 RD前缀。然后我就可以堂堂正正地获取 mainRunloop的详细信息了。
+# Observe the Main Runloop of the App
+Through the toll-free bridge, we can intuitively see what the Main Runloop of an iOS App looks like by default. For this reason, I copied a copy of the structure declaration of \_\_CFRunloop and renamed it to _RD_CFRunloop (RD for runloop demo). Other related data structures that cannot be automatically linked are also copied, plus RD prefix. Then I can get the detailed information of mainRunloop upright.
 
 ```c
-//通过 toll-free bridge
+//Through toll-free bridge
 _RD_CFRunLoop *currentRunloop = (__bridge _RD_CFRunLoop *)[NSRunLoop mainRunLoop];
  
-//当然也可以用 CoreFoundation API然后指针强转
+//Of course you can also use the CoreFoundation API and then force the pointer
 _RD_CFRunLoop *currentRunloop = (void *)CFRunLoopGetMain();
 ```
 
-然后我们直接打断点，在 Xcode控制台中先预览一下这些结构有哪些值。
+Then we directly interrupt the point and preview the values ​​of these structures in the Xcode console.
 ![](/images/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-17-10.17.02-768x607.png)
 
-这时候可以直接打印一下 _commonModes的值看一下
+At this time, you can directly print the value of _commonModes to see
 
 ![](/images/%E5%B1%8F%E5%B9%95%E5%BF%AB%E7%85%A7-2017-06-17-10.23.54.png)
 
-可以看到 mainRunloop的 commonMode只有两个，一个是 UITrackingRunloopMode，另一个是 kCFRunLoopDefaultMode。然后我们还可以看一下 _currentMode（图就不列了），name是 UIInitializationRunLoopMode（此时的调用栈处于 app didFinishLaunching），这个 Mode很明显不是 commonMode，所以我们给 commonMode添加的回调不会存在于这个 mode中。
+You can see that there are only two commonModes of mainRunloop, one is UITrackingRunloopMode, and the other is kCFRunLoopDefaultMode. Then we can also take a look at _currentMode (not listed in the figure), the name is UIInitializationRunLoopMode (the call stack at this time is in app didFinishLaunching), this Mode is obviously not commonMode, so the callback we add to commonMode will not exist in this mode in.
 
-接下来我们可以看一下 \_commonModeItems里面有哪些东西，按上文所述，_commonModeItems里的回调肯定会被标记为 commonMode的 Mode执行。不过 _commonModeItems比较多，我们可以把它转成 NSMutableSet，用面向对象的 API在循环中挨个看。
+Next, we can look at what is in \_commonModeItems. According to the above, the callback in _commonModeItems will definitely be executed by the Mode marked as commonMode. However, there are more _commonModeItems, we can convert it to NSMutableSet, and use the object-oriented API to look at them in a loop.
 
 ```c
 NSMutableSet *commonModeItems = (__bridge NSMutableSet *)runloop->_commonModeItems;
@@ -119,7 +119,7 @@ NSMutableSet *commonModeItems = (__bridge NSMutableSet *)runloop->_commonModeIte
 }];
 ```
 
-不过这个有点长，我就做一个简单的罗列:
+But this is a bit long, I will make a simple list:
 
 source0:
 
@@ -131,24 +131,24 @@ source0:
 
 source1:
 
-* \_ZL26power_notify_port_callbackP12__CFMachPortPvls1\_, port = 2407 , order = 0
+* \_ZL26power_notify_port_callbackP12__CFMachPortPvls1\_, port = 2407, order = 0
 * MIG Server, port = 26891, order = 0
 * \_ZL27change_notify_port_callbackP12__CFMachPortPvlS1, port = 1b03, order = 0
-* PurpleEventCallBack,  order = -1
+* PurpleEventCallBack, order = -1
 * MIG Server, port = 21775, order = 0
 
 
 observer:
 
 * \_beforeCACommitHandler, order = 1999000
-* \_ZN2CA11Transaction17observer_callbackEP19__CFRunLoopObservermPv，order = 2000000
+* \_ZN2CA11Transaction17observer_callbackEP19__CFRunLoopObservermPv, order = 2000000
 * \_UIGestureRecognizerUpdateObserver, order = 0
 * \_wrapRunLoopWithAutoreleasePoolHandler, order = -2147483647
 * \_wrapRunLoopWithAutoreleasePoolHandler, order = 2147483647
 * \_afterCACommitHandler, order = 2001000
 
 
-这些就是 Apple在实现一个 App的 mainRunloop的时候在每个 commonMode执行周期里都会得到回调的 modeItem（模拟器真机以及不同系统版本可能会有些差异）。虽然不能全部解释，但大体上还能从一些关键字看出，mainRunloop承载的一些功能比如主线程的串行队列，处理硬件事件，处理全局事件队列等等。但我们应该看一下 mainRunloop到底有哪些 mode：
+These are the modeItems that Apple will get callbacks in every commonMode execution cycle when implementing the mainRunloop of an App (the real simulator and different system versions may be different). Although it cannot be explained in full, it can be seen in general from some keywords that some functions carried by mainRunloop such as the serial queue of the main thread, processing hardware events, processing global event queues and so on. But we should take a look at what modes the mainRunloop has:
 
 ```objc
 NSMutableSet *modes= (__bridge NSMutableSet *)runloop->——modes;
@@ -157,7 +157,7 @@ NSMutableSet *modes= (__bridge NSMutableSet *)runloop->——modes;
 }];
 ```
 
-打印出了这几个值：
+These values ​​are printed:
 
 * UITrackingRunLoopMode
 * GSEventReceiveRunLoopMode
@@ -165,33 +165,33 @@ NSMutableSet *modes= (__bridge NSMutableSet *)runloop->——modes;
 * UIInitializationRunLoopMode
 * kCFRunLoopCommonModes
 
-其中 kCFRunLoopCommonModes只是一个占位符罢了，它并不是一个真正可以被一个 Runloop周期可执行的 Mode，只是在往它的集合里插入新的 item时，其他标记为 commonMode的 Mode也一并会加入这个新的 item。而 UIInitializationRunLoopMode只在我们当前 app didFinishLaunching时才能捕捉到 _currentMode指向它，一旦 App初始化完成后，这个 Mode便不会再被使用到了。至于 GSEventReceiveRunLoopMode，我们还是静观其变吧。
+Among them, kCFRunLoopCommonModes is just a placeholder. It is not really a Mode that can be executed by a Runloop cycle. It is just that when a new item is inserted into its collection, other Modes marked as commonMode will also be added to this new one. Item. UIInitializationRunLoopMode can only capture the _currentMode pointing to it when our current app didFinishLaunching. Once the app is initialized, this Mode will no longer be used. As for GSEventReceiveRunLoopMode, let's just wait and see its changes.
 
-# RunLoop 的执行
+# RunLoop execution
 
-runloop的执行我们不好去猜，不过 [Apple的文档](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/RunLoopManagement/RunLoopManagement.html#//apple_ref/doc/uid/10000057i-CH16-SW23)还是告诉了我们一些事情。具体的顺序简单地解释一遍：
+It’s hard to guess the execution of runloop, but [Apple’s documentation](https://developer.apple.com/library/content/documentation/Cocoa/Conceptual/Multithreading/RunLoopManagement/RunLoopManagement.html#//apple_ref/doc/ uid/10000057i-CH16-SW23) still tells us something. The specific sequence is explained briefly:
 
-1. 通知 observer 已经进入 runloop
-2. 通知 observer timer回调将被触发
-3. 通知 observer，非基于 port的输入的 source （也就是 source0)将会执行
-4. 执行 source0
-5. 如果有基于 port的输入事件（也就是 source1），执行它们，然后跳到第 9步
-6. 通知 observer 线程即将进入休眠
-7. 休眠线程，等待唤醒。线程可以被 基于 port的 source唤醒，也可以通过 timer唤醒。但 runloop自身内部也会有超时时间，也可以基于此唤醒，但这是内部的逻辑了，外部不可达。最后最直接的，可以通过 CoreFoundation API直接唤醒
-8. 通知 observer 线程刚被唤醒
-9. 处理唤醒时收到的消息。通过 port source唤醒的，直接分发这个事件（也就是执行）。被用户的 timer唤醒的，会执行 timer回掉，然后重启 runloop。假如被直接唤醒并且 runloop未超时，runloop也会重启。最终都会跳到步骤 2.
-10. 通知 observer runloop即将退出。
+1. Notify the observer that it has entered the runloop
+2. Notify observer timer callback will be triggered
+3. Notify the observer that the source of non-port-based input (ie source0) will be executed
+4. Execute source0
+5. If there are port-based input events (ie source1), execute them, and then skip to step 9
+6. Notify the observer that the thread is about to enter sleep
+7. Sleeping thread, waiting to wake up. A thread can be awakened by a port-based source or a timer. But the runloop itself also has a timeout time, and it can also be woken up based on this, but this is the internal logic, and the outside is unreachable. The last and most direct one can be directly awakened through CoreFoundation API
+8. Notify observer that the thread has just been woken up
+9. Process the message received upon wake-up. When awakened by the port source, the event is directly distributed (that is, executed). If awakened by the user's timer, the timer will be executed and the runloop will restart. If it is directly awakened and the runloop does not time out, the runloop will also restart. Eventually will skip to step 2.
+10. Notify the observer that runloop is about to exit.
 
-从上面的步骤来看，observer在整个执行中很抢戏。这也就解释了 CFRunLoopObserver会什么会有那么多 CFRunlLoopActivity的标志位（参见 CFRunLoop.h）。
+Judging from the above steps, the observer is very popular in the entire execution. This also explains what CFRunLoopObserver will have so many CFRunlLoopActivity flags (see CFRunLoop.h).
 
-其实，我们完全可以去看 CFRunLoopRunSpecific方法的源代码 （CFRunLoop.m Line 2912-2945)，此处就不放源码了，做一个简单的解读就是 CFRunLoopSpecific方法会先做一些基本的判断，然后 push 一个 per_run_data的结构体给每一次执行的 mode，在真正地执行一个 mode前后，会通知 observer两个事件: kCFRunLoopEntry和 kCFRunLoopExit。执行一个 mode调用的是 CFRunLoopRun方法（Line 2590-2908)。
+In fact, we can look at the source code of the CFRunLoopRunSpecific method (CFRunLoop.m Line 2912-2945). The source code is not included here. A simple interpretation is that the CFRunLoopSpecific method will first make some basic judgments, and then push a per_run_data The structure of for each mode executed, before and after a mode is actually executed, the observer will be notified of two events: kCFRunLoopEntry and kCFRunLoopExit. Execute a mode call CFRunLoopRun method (Line 2590-2908).
 
-再简单地解释一下 CFRunLoopRun方法的流程。一开始就会判断是否有加入 dispatch相关的 source和 timer，它们会首先得到回调，很明显 Apple的 Runloop文档没有对此一步有所提及。接下来会 unset掉 per_run_data 的 ignorePortWakeUp标志位，也就是说真正的 mode执行周期内可以由端口事件唤醒，这是符合文档描述的。接下来会连续执行 kCFRunLoopBeforeTimers 和 kCFRunLoopBeforeSources的 Observer回调。接下来就是要执行我们喜闻乐见的 source0了，__CFRunLoopDoSources0（Line 1936-1994） 这么明显的方法名，再瞎也看得见了。再接下来，一通乱七八糟的宏判断，大体就是在说处理 port的输入事件。再接下来就是通知 observer 要进入休眠了，然后就真的调了 __CFRunLoopSetSleeping方法（Apple 诚不吾欺）。接下来会有一个 do while(1)循环去监听 port事件，也会有一个 sleepStart的时间标志。在这个 do while(1)循环里，假如收到了 port事件，或者 sleepStart的标志时间超出了 runLoop内部结构体的 expirTime或 timer的 fire time，runLoop会再次被唤醒。然后会 unSetSleeping并通知 observer 发生了 kCFRunLoopAfterWaiting事件。接下来的事就有点重复了，再解释就有点啰嗦，各位自己看代码吧。
+Let me briefly explain the flow of the CFRunLoopRun method. At the beginning, it will be judged whether there are sources and timers related to dispatch. They will get callbacks first. Obviously, Apple's Runloop document does not mention this step. Next, the ignorePortWakeUp flag bit of per_run_data will be unset, which means that the port event can be awakened during the real mode execution cycle, which is in line with the document description. Next, the Observer callbacks of kCFRunLoopBeforeTimers and kCFRunLoopBeforeSources will be executed continuously. The next step is to execute the source0 that we love to hear, __CFRunLoopDoSources0 (Line 1936-1994) such an obvious method name, you can see it even if you are blind. Next, a mess of macro judgments is basically talking about handling port input events. The next step is to notify the observer that it is going to sleep, and then it really adjusts the __CFRunLoopSetSleeping method (Apple does not deceive me). Next, there will be a do while(1) loop to listen to port events, and there will also be a sleepStart time stamp. In this do while(1) loop, if a port event is received, or the mark time of sleepStart exceeds the expirTime of the internal structure of the runLoop or the fire time of the timer, the runLoop will be awakened again. Then it will unSetSleeping and notify the observer that the kCFRunLoopAfterWaiting event has occurred. The next thing is a bit repetitive, and the explanation is a bit verbose, so please read the code for yourself.
 
-# 简单的运用
+# Simple use
 
-既然知道了 Runloop的执行逻辑，我们便可以基于此来做一点有意思的事，比如可以用于做 iOS页面状态的监控。（这是什么操作？）
+Now that we know the execution logic of Runloop, we can do something interesting based on this, for example, it can be used to monitor the status of iOS pages. (What is this operation?)
 
-通常地，我们从服务器请求到一串 JSON字符串，序列化后提交给 view渲染，这时候 Main RunLoop会执行一个从唤醒到退出的周期，即从 kCFRunLoopBeforeWaiting 到 kCFRunLoopExit。为什么有这种判断呢？从上文检查 main Runloop的 Observer很明显可以看到 _ZN2CA11Transaction17observer_callbackEP19__CFRunLoopObservermPv这个回调。它是 Apple注册的，用于标记界面更新，在它被回调时会计算和绘制 view，那么我们只需要注册一个 observer，在它之前被回调一次，在它之后再被回调一次，那么就可以计算出时间差，就知道一个界面从被标记为更新到更新完成到底花了多少时间。
+Usually, we request a string of JSON strings from the server, serialize them and submit them to the view for rendering. At this time, Main RunLoop will execute a cycle from wake-up to exit, that is, from kCFRunLoopBeforeWaiting to kCFRunLoopExit. Why is there such a judgment? From the above inspection of the main Runloop Observer, it is obvious that you can see the callback _ZN2CA11Transaction17observer_callbackEP19__CFRunLoopObservermPv. It is registered by Apple and is used to mark the interface update. When it is called back, it will calculate and draw the view. Then we only need to register an observer, which is called back once before it, and then called back again after it, then it can be calculated When you travel time, you know how much time it took for an interface to be marked as updated to when the update was completed.
 
-具体怎么实现，看各位的对 Runloop的理解和才华了。嘻嘻
+How to implement it depends on your understanding and talents of Runloop.

@@ -1,14 +1,14 @@
 ---
-title: Dart 的函数
+title: Dart function
 date: 2018-04-23 19:09:46
 tags:
 ---
 
-函数是 Dart程序运行的基本单元，在本篇文章中，我们系统地认识一下 Dart的函数。
+Function is the basic unit of Dart program operation. In this article, we will systematically understand Dart's functions.
 
 <!--more-->
-Dart 是一门真正的面向对象的编程语言，所以函数也是一种对象的实例，它也有类型，叫做 `Function`. 这就表示函数也可以赋值给变量，也可以作为函数参数传递。  
-一个简单的函数如下：
+Dart is a true object-oriented programming language, so a function is also an instance of an object, and it also has a type called `Function`. This means that functions can also be assigned to variables or passed as function parameters.
+A simple function is as follows:
 
 ```dart
 bool isZero(int number) {
@@ -16,7 +16,7 @@ bool isZero(int number) {
 }
 ```
 
-尽管 Dart官方教程希望你给函数的返回加上类型，但你依旧可以忽略返回类型，让编译器自行推断：
+Although the official Dart tutorial wants you to add a type to the return of the function, you can still ignore the return type and let the compiler infer it by itself:
 
 ```dart
 isZero(int number) {
@@ -24,54 +24,54 @@ isZero(int number) {
 }
 ```
 
-如果像上文的代码只有一行表达式的话，可以用箭头函数来表达：
+If there is only one line of expression like the above code, you can use arrow functions to express:
 
 ```dart
 bool isZero(int number) => number == 0;
 ```
 
-# 可选参数
-可选参数其实有两种含义  
+# Optional parameters
+Optional parameters actually have two meanings
 
-## 可选的具名参数
-什么是具名？看代码  
+## Optional named parameters
+What is named? See code
 
 ```dart
-// 定义了一个这样的函数
-void enableFlags(bool bold, bool hidden) { 
+// defines a function like this
+void enableFlags(bool bold, bool hidden) {
   // ...
 }
-// 假如参数很多，类型相近，用的时候就不知道哪个参数对应哪个位置了
+// If there are many parameters and their types are similar, you don't know which parameter corresponds to which position when you use it
 enableFlags(true, true);
 
-// 希望是下面这种带参数名的用法
+// Hope it is the following usage with parameter names
 enableFlags(bold: true, hidden: true);
 ```
 
-要达到具名函数的用法，那就在定义的时候给参数加上 `{}`
+To achieve the usage of the named function, add `{}` to the parameter when defining
 
 ```dart
-void enableFlags({bool bold, bool hidden}) { 
+void enableFlags({bool bold, bool hidden}) {
   // ...
 }
 ```
 
-## 可选的位置参数
-和 JavaScript不一样的地方是，Dart**某些位置**可忽略的参数必须在函数定义时用 `[]`符号指定：
+## Optional positional parameters
+The difference from JavaScript is that Dart **certain positions** ignorable parameters must be specified with `[]` symbols in the function definition:
 
 ```dart
-// device参数在调用时可以忽略不传
+// The device parameter can be ignored when calling
 String say(String from, String msg, [String device]) {
-  var result = '$from says $msg';
+  var result ='$from says $msg';
   if (device != null) {
-    result = '$result with a $device';
+    result ='$result with a $device';
   }
   return result;
 }
 ```
 
-# 参数默认值
-和其他语言一样，你可以给函数形参加上默认值，如果该参数未传递，则默认值为 `null`
+# Parameter default value
+Like other languages, you can add a default value to the function form. If the parameter is not passed, the default value is `null`
 
 ```dart
 void enableFlags({bool bold = false, bool hidden = false}) {
@@ -82,48 +82,48 @@ void enableFlags({bool bold = false, bool hidden = false}) {
 enableFlags(bold: true);
 ```
 
-# main函数
-main 函数是一个 dart应用的入口。 main函数返回类型是 `void`，可选参数作为一个 `List<String>`类型传递进来.
+# main function
+The main function is the entry point of a dart application. The return type of the main function is `void`, and optional parameters are passed in as a `List<String>` type.
 
 ```dart
-// 调用方法：
+// Call method:
 // dart demo.dart 1 test
 void main(List<String> arguments) {
   print(arguments);
 
   assert(arguments.length == 2);
   assert(int.parse(arguments[0]) == 1);
-  assert(arguments[1] == 'test');
+  assert(arguments[1] =='test');
 }
 ```
 
-如果你要使用 Dart来写一个命令行工具，你可以用 [args library](https://pub.dartlang.org/packages/args)来解析命令行参数。
+If you want to use Dart to write a command line tool, you can use [args library](https://pub.dartlang.org/packages/args) to parse command line parameters.
 
-# 匿名函数
-上述见到的函数都是命名的，Dart当然也可以使用匿名函数。
-比如说使用一个匿名函数迭代 List
+# Anonymous function
+The functions seen above are all named. Of course, Dart can also use anonymous functions.
+For example, use an anonymous function to iterate the List
 
 ```dart
 void main() {
-  var list = ['apples', 'bananas', 'oranges'];
+  var list = ['apples','bananas','oranges'];
   list.forEach((item) {
     print('${list.indexOf(item)}: $item');
   });
 }
 ```
 
-# 语义化的作用域
-该部分内容比较简单，在 [Dart介绍](/2018/04/20/dart-getting-start/)中已经认识过，不再赘述。
+# Semantic scope
+The content of this part is relatively simple and has already been recognized in [Dart Introduction](/2018/04/20/dart-getting-start/), so I won't repeat it.
 
-# 返回值
-Dart中所有的函数都具有返回值，如果一个表达式或函数的返回值没有指定，那么默认就是 `null`。
+# return value
+All functions in Dart have return values. If the return value of an expression or function is not specified, the default is `null`.
 
-# 函数的级联
-函数的级联也叫链式调用。Dart 原生语法支持链式调用，只需要使用 `..`
+# Function cascade
+The cascade of functions is also called chain call. Dart's native syntax supports chained calls, just use `..`
 
 ```dart
 querySelector('#confirm') // Get an object.
-  ..text = 'Confirm' // Use its members.
+  ..text ='Confirm' // Use its members.
   ..classes.add('important')
   ..onClick.listen((e) => window.alert('Confirmed!'));
 ```

@@ -4,99 +4,99 @@ date: 2018-11-06 16:10:59
 tags:
 ---
 
-> 阅前提醒：本文仅属个人观点，如有雷同纯属巧合，如有错误请指正。
+> Reminder before reading: This article is only a personal opinion, any similarity is purely coincidental, please correct me if there is any error
 
-GUI 差不多已经发展了近 30年，到现在这项技术已经基本成熟，各种 GUI框架基本已经大同小异，下面是流行的 GUI框架一览：
+GUI has been developed for almost 30 years. Now this technology has basically matured. Various GUI frameworks are basically the same. Below is a list of popular GUI frameworks:
 
-* Cocoa/Cocoa Touch （Apple, macOS/iOS)
+* Cocoa/Cocoa Touch (Apple, macOS/iOS)
 * Windows Presentation Foundation (Microsoft, Windows)
 * Android GUI (Google, Android)
-* WebKit (Apple, Safari）
+* WebKit (Apple, Safari)
 * Blink (Google, Chrome)
 * Flutter (Google, Android/iOS/Fuschia/Chrome)
 
 <!--more-->
 
-> 电影与显示器:
+> Movies and displays:
 
->电影是近代最伟大的发明之一，它的原理是人眼的“视觉暂留”，一个物体的视相消失后可以在视网膜短暂停留 0.1-0.4s，当电影胶片以 24格每秒匀速转动时，一系列静态画面就会因为视觉暂留而造成一种连续的视觉印象。
+>Film is one of the greatest inventions in modern times. Its principle is the "persistence of vision" of the human eye. After the visual phase of an object disappears, it can stay in the retina for a short time for 0.1-0.4s. When rotating, a series of static images will create a continuous visual impression due to visual persistence.
 
->现代显示器一般以 60Hz(>=60)的刷新频率为主，这就要求显示处理器(GPU)在 1s内提供 60张可供显示的图片数据，当显示处理器来不及处理这么多只能提供少于 60这个数量时，很多人就能感觉到卡顿（掉帧），当这个值少于 30甚至少于 24时，基本上所有人都能感受到卡顿（掉帧）。
-
-
-# GUI框架的一般形式
-GUI是电影（动画）的一种延伸，它以动画的形式向用户展示可交互界面，对用户的操作进行视觉上的反馈。
-从上面可以知道，GUI框架理所应当向 GPU在 1s内提供至少 60次静态图像，GUI框架本身也需要在 1s内完成一定量的计算，以完成用户的交互需求。
-
-**用户操作的基本 GUI单位是控件**，按钮是控件，图片是控件，甚至窗口也是控件。应用通过控件之间的排列与组合为用户提供丰富多彩的可交互界面。  
-**控件也是 GUI框架进行渲染的基本单位**，GUI框架通过控件树描述界面的数据结构，通过控件的样式属性来确定大小和外观。  
-
-早期的 GUI框架通过设计出不同的控件后，让控件自己决定绘制的样式，这样做虽然没有什么问题，但通常效率都不够高。不同控件都会存在很多类似的绘制代码（代码冗余），并且在真正绘制时让 GPU疲于奔命，而且每个控件的绘制周期都比较独立，很难从框架总体上去进行管控和定位问题。  
-经过多年的迭代和发展后，GUI框架发展成如今这种大同小异的结构：
-![现代 GUI框架结构](https://ws1.sinaimg.cn/large/8696f529ly1fwx63r4baaj20ci0ci0t5.jpg)
-
-* Widgets（控件，也叫 View Tree），它是用于描述用户界面原始数据的树状结构。通常这一层根本不关心绘制，它只关心用户对数据的操作。
-* Render Tree，它是一种更为抽象的树状数据结构，一般来说它是和上一步的 View Tree结构相同，并且它不关心原始数据，只关心控件的布局和大小。通过这一步计算出控件布局后才能真正地确定控件的外观。
-* Layer Tree 跟 Render Tree是相对应的，这一步会主动触发 Render Tree中每个元素的外观渲染，在已知控件大小和位置的情况下决定每个控件的真正外观。但 Layer Tree的树状结构不是和 Render Tree一一对应的，Layer Tree有可能因为 Layer合并优化导致一层的 Render Tree叶子节点最终只对应一个 Layer。
-* 在已经决定好控件的大小位置以及长相后，剩下的工作就需要把这些东西组合起来显示到屏幕上。这一步原理比较简单，就是将前一步的 Layer合并成一张 Bitmap，这是一种最简单的图像存储形式。将 Bitmap光栅化后便可以提交给 GPU渲染。
+>Modern displays generally use a refresh rate of 60Hz (>=60), which requires the display processor (GPU) to provide 60 displayable image data within 1s. When the display processor is too late to process so much, it can only provide When the number is less than 60, many people can feel the freeze (frame drop), when the value is less than 30 or even less than 24, basically everyone can feel the freeze (frame drop).
 
 
-# 渲染流程
-从宏观上来总结大多数 GUI框架的渲染流程，除了部分框架在处理 Animation的时机有所不同，基本都可以总结为下图：  
+# General form of GUI framework
+GUI is an extension of movie (animation). It shows the user an interactive interface in the form of animation and provides visual feedback to the user's operation.
+It can be known from the above that the GUI framework should provide the GPU with at least 60 static images within 1s, and the GUI framework itself also needs to complete a certain amount of calculations within 1s to complete the user's interaction requirements.
 
-![](https://ws1.sinaimg.cn/large/8696f529ly1fwxc4h5m60j20ci0cidg5.jpg)  
-_（该图选自 Flutter Rendering Pipeline技术专题演讲）_  
+**The basic GUI unit for user operations is controls**. Buttons are controls, pictures are controls, and even windows are controls. The application provides users with a rich and colorful interactive interface through the arrangement and combination of controls.
+**Controls are also the basic unit of rendering in GUI frameworks**. The GUI framework describes the data structure of the interface through the control tree, and determines the size and appearance through the style properties of the controls.
+
+In the early GUI framework, after designing different controls, let the controls decide the drawing style. Although there is no problem in doing so, it is usually not efficient enough. Different controls will have a lot of similar drawing codes (code redundancy), and the GPU is exhausted when actually drawing, and the drawing cycle of each control is relatively independent, it is difficult to control and locate the problem from the framework as a whole.
+After years of iteration and development, the GUI framework has developed into a similar structure today:
+![Modern GUI Frame Structure](https://ws1.sinaimg.cn/large/8696f529ly1fwx63r4baaj20ci0ci0t5.jpg)
+
+* Widgets (controls, also called View Tree), it is a tree structure used to describe the original data of the user interface. Usually this layer does not care about drawing at all, it only cares about the user's operations on the data.
+* Render Tree, which is a more abstract tree-like data structure. Generally speaking, it is the same as the View Tree structure of the previous step, and it does not care about the original data, only the layout and size of the control. After calculating the control layout through this step, the appearance of the control can be truly determined.
+* Layer Tree corresponds to Render Tree. This step will actively trigger the appearance rendering of each element in the Render Tree, and determine the real appearance of each control when the size and position of the control are known. However, the tree structure of the Layer Tree does not correspond to the Render Tree one-to-one. It is possible that the Layer Tree's leaf nodes of the Render Tree correspond to only one Layer due to Layer merge optimization.
+* After the size, location and appearance of the controls have been determined, the rest of the work needs to be combined and displayed on the screen. The principle of this step is relatively simple, which is to merge the Layer of the previous step into a Bitmap, which is the simplest form of image storage. After the Bitmap is rasterized, it can be submitted to the GPU for rendering.
+
+
+# Rendering process
+Summarizing the rendering process of most GUI frameworks from a macro perspective, except that some frameworks have different timings for processing Animation, they can be basically summarized as the following figure:
+
+![](https://ws1.sinaimg.cn/large/8696f529ly1fwxc4h5m60j20ci0cidg5.jpg)
+_(The picture is selected from the Flutter Rendering Pipeline technical lecture)_
 
 # Layout
-Layout阶段主要负责计算出视图的大小和位置。
+The Layout stage is mainly responsible for calculating the size and position of the view.
 ### Webkit / Blink
-Webkit 依靠 CSS（Cascading Style Sheet）实现布局。  
-CSS有以下特点：  
+Webkit relies on CSS (Cascading Style Sheet) to achieve layout.
+CSS has the following characteristics:
 
-* 选择器：确定样式的作用元素
-* 样式：确定视图的布局、大小、背景等外观。
-* 变形、变换和动画：用于相对复杂的动画或外观形式
+* Selector: determine the role element of the style
+* Style: Determine the layout, size, background and other appearance of the view.
+* Deformation, transformation and animation: used for relatively complex animation or appearance forms
 
-看起来 CSS对于 Webkit而言不止只是一个布局功能的实现，而且还是绘制以及动画的实现。CSS为 Webkit提供了框模型布局以及 Flex布局，通过这两个布局的组合基本上可以实现任意形式的布局需求。
+It seems that CSS is not only the realization of layout function for Webkit, but also the realization of drawing and animation. CSS provides a frame model layout and a Flex layout for Webkit. The combination of these two layouts can basically achieve any form of layout requirements.
 
 ### Cocoa / Cocoa Touch
-Cocoa 以及 Cocoa Touch早期一直依赖简单的框（frame）模型布局，直到 iOS设备的形式开始丰富起来时，才把 AutoLayout这一布局搬上历史舞台。  
-当然不乏有第三方框架将 FlexBox的布局搬到 Cocoa Touch 上，但其依赖的根本还是框模型布局，并没有被 GUI框架内置参与到渲染流程中（这也无伤大雅）。
+Cocoa and Cocoa Touch have always relied on a simple frame model layout in the early days. It was not until the form of iOS devices began to enrich, that AutoLayout was brought to the stage of history.
+Of course, there are many third-party frameworks that move the layout of FlexBox to Cocoa Touch, but it relies on the frame model layout at all, and it is not built into the GUI framework to participate in the rendering process (this is not harmful).
 
 ### Android GUI
-Android仅仅只支持了框模型布局，不过很早 Google 工程师就认识到这是远远不够的，所以 Android有着更多预定义的布局模型（比如 LinearLayout、GridLayout）来帮助开发者实现更复杂的布局。
+Android only supports the frame model layout, but early Google engineers realized that this is far from enough, so Android has more predefined layout models (such as LinearLayout, GridLayout) to help developers achieve more complex layouts.
 
-### Flutter 
-Flutter可以说和 Blink是同宗同源的，但是它的布局模式却集各家所长。 Flutter同时支持框布局，Flex布局，以及类似于 Android的预定义布局模型。  
-但 Flutter和 Android GUI的布局都有个不太明显的缺点：布局模型也成为了控件之一，这看起来有一些奇怪，很明显布局不能渲染内容。
+### Flutter
+Flutter can be said to be of the same origin as Blink, but its layout model is based on the strengths of each. Flutter also supports frame layout, Flex layout, and a predefined layout model similar to Android.
+However, the layout of Flutter and Android GUI has a less obvious shortcoming: the layout model has also become one of the controls, which seems a little strange, obviously the layout cannot render content.
 
 # Paint
-paint 阶段主要负责计算出视图的内容。 
-![](https://ws1.sinaimg.cn/large/8696f529ly1fwy5ceq7ihj20e40ci74o.jpg) 
+The paint stage is mainly responsible for calculating the content of the view.
+![](https://ws1.sinaimg.cn/large/8696f529ly1fwy5ceq7ihj20e40ci74o.jpg)
 
-一般来说，GUI框架在这个阶段需要调用图形相关的功能或函数来表达出每一层（Layer）的内容数据。如果绘图操作由 CPU计算完成，那么称之为软件绘图。如果由 GPU完成，那么称之为硬件加速绘图。通常这两种绘图 CPU居多，但混合的情况是经常有的。CPU只能处理 2D绘图，当碰到 3D的情况时只能由 GPU完成这部分工作。
+Generally speaking, the GUI framework needs to call graphics-related functions or functions at this stage to express the content data of each layer (Layer). If the drawing operation is calculated by the CPU, it is called software drawing. If it is done by the GPU, it is called hardware accelerated drawing. Usually these two types of graphics CPUs are the majority, but they are often mixed. The CPU can only handle 2D graphics, and when it comes to 3D, the GPU can only complete this part of the work.
 
 ### Cocoa / Cocoa Touch
-macOS 一直以来都依靠 Quarz 2D (Core Graphics）来渲染视图，直到 iOS上才使用了更高性能、更现代化设计的 Core Animation.  
-在渲染 3D时，可以使用 OpenGL ES，不过在 iOS 12上已经去除了支持，改为自家的 Metal引擎。
+macOS has always relied on Quarz 2D (Core Graphics) to render views. It was not until iOS that Core Animation with higher performance and more modern design was used.
+When rendering 3D, you can use OpenGL ES, but the support has been removed on iOS 12 and changed to its own Metal engine.
 
-### Android GUI、Flutter 和 Blink
-三者都来自 Google，因此他们的 2D渲染引擎都采用了 Skia。  
-3D绘图采用了流行的 OpenGL(ES)  
+### Android GUI, Flutter and Blink
+All three are from Google, so their 2D rendering engine uses Skia.
+3D drawing uses popular OpenGL(ES)
 
 ### WebKit
-WebKit的绘图实现就比较抽象了，从设计之初为了支持跨平台，把各平台有差异的绘图接口抽象为统一接口：PlatformGraphicsContext. 这一个接口在 macOS/iOS 平台的实现就是 CoreGraphics，在 Android的实现就是 Skia.
-3D绘图的道理也是一样，WebKit抽象出了 PlatformGraphicsContext3D的接口。
+The drawing implementation of WebKit is relatively abstract. From the beginning of the design, in order to support cross-platform, the different drawing interfaces of each platform are abstracted into a unified interface: PlatformGraphicsContext. The implementation of this interface on the macOS/iOS platform is CoreGraphics, which is implemented on Android. It's Skia.
+The same is true for 3D drawing. WebKit abstracts the PlatformGraphicsContext3D interface.
 
 # Composite
-通常在 Paint阶段渲染的 Layer所使用的像素(pixel)都远远超过了屏幕所能承载的，很明显在显示一屏内容时不需要这么多像素，GPU没必要为额外那么多没用的像素数据执行计算，所以需要 Composite这一步进行 Layer合成。  
-由于 Paint阶段已经决定了每一个 Layer的外观数据存在内存中，所以合成阶段只需要从内存中取数据计算，决定某一块具体显示哪一个 Layer的数据。这一阶段过后得到的将是一份矢量图数据，在进行光栅化后提交给 GPU执行渲染即可。
+Usually, the pixels used by the layer rendered in the Paint stage far exceed what the screen can carry. Obviously, there is no need for so many pixels to display a screen of content, and the GPU does not need to be extra useless pixels. The data is calculated, so the Composite step is required for Layer synthesis.
+Since the paint stage has determined that the appearance data of each layer is stored in the memory, the synthesis stage only needs to fetch the data from the memory for calculation to determine which layer of data is displayed in a certain block. After this stage, the vector data will be a vector, which can be submitted to the GPU for rendering after rasterization.
 
 
-# 设计一个 GUI框架？
-在做 GUI框架各部分的选型之前，先来看一下目前各种 GUI框架的比较
+# Design a GUI framework?
+Before making the selection of various parts of the GUI framework, let's take a look at the comparison of various GUI frameworks.
 
-|比较项|Paint| Layout | SDK |
+|Comparison Items|Paint| Layout | SDK |
 |:---:|:---:|:---:|:---:|
 |React-Native| / | Frame+FlexBox| Javascript |
 | Flutter | Skia | Frame+FlexBox+LayoutWidgets| Dart |
@@ -104,34 +104,34 @@ WebKit的绘图实现就比较抽象了，从设计之初为了支持跨平台�
 |Android GUI| Skia| LayoutWidgets+Frame| Java |
 |WebKit|Portable*| Frame+FlexBox| Javascript|
 
-（从上表可以看出 React-Native不能算是一个 GUI框架，最多算是一个应用层的SDK，帮助你在GUI框架之上构建控件。）
+(It can be seen from the above table that React-Native can not be regarded as a GUI framework, at most it can be regarded as an application layer SDK to help you build controls on top of the GUI framework.)
 
-### Paint的选型
-我们很多人都希望多个平台的应用只需要写一份代码，所以 Paint的选型尤为重要。目前只有 WebKit和 Flutter实现了跨平台，前者通过抽象出平台的绘图接口，后者使用跨平台的绘图库，两者均可以移植到不同的平台。  
-不过非要作比较，我个人还是比较认可 WebKit的方案。WebKit理论上可以移植到任何系统，而 Flutter如果 Skia库不支持的话就不能移植。并且 WebKit的方案可以减少应用的体积，Skia的二进制文件还是太大了。  
+### Paint selection
+Many of us hope that applications on multiple platforms only need to write one code, so the selection of Paint is particularly important. Currently, only WebKit and Flutter implement cross-platform. The former abstracts the drawing interface of the platform, and the latter uses a cross-platform drawing library. Both can be ported to different platforms.
+But if you have to compare, I personally agree with the WebKit solution. In theory, WebKit can be ported to any system, but Flutter cannot be ported if the Skia library does not support it. And the WebKit solution can reduce the size of the application, and Skia's binary files are still too large.
 
-这一轮 PK我觉得还是 Portable*的抽象绘图接口胜出。
+In this round of PK, I think Portable*'s abstract graphics interface won.
 
-### Layout的选型
-Layout关系着开发者的体验。事实已经证明 Frame + FlexBox是非常友好而且非常高效的布局方式，就算面对极其复杂的布局方式，也只需要框架层提供部分布局控件给予辅助即可。  
+### Layout selection
+Layout is about the developer's experience. Facts have proved that Frame + FlexBox is a very friendly and very efficient layout method. Even in the face of extremely complex layout methods, only the framework layer provides some layout controls to assist.
 
-### SDK的设计
-在设计 SDK前，我们需要先确定使用什么编程语言。我们希望跨平台，动态化，入门门槛较低，那么似乎只有 JavaScript和 Dart可选。但仔细一想发现 Dart的运行时还是太大了，而 JavaScript的运行时早已被各个平台内置，我们只需要引用即可。  
+### SDK design
+Before designing the SDK, we need to determine what programming language to use. We want to be cross-platform, dynamic and have a low entry barrier, so it seems that only JavaScript and Dart are available. But I think about it carefully and find that the runtime of Dart is still too big, and the runtime of JavaScript has already been built-in by various platforms, we only need to reference it.
 
-WebKit DOM API经过时间的证明已经是个沉重的历史包袱。若不是这种界面构建方式，React、Vue之类的框架也不会如今这般火热。说到底 GUI开发也是编程，仅仅描述界面是不够的，所以 SDK应当是一个类似于 UIKit之类的编程框架。
+The proof of the WebKit DOM API over time is a heavy historical burden. If it weren't for this way of interface construction, frameworks such as React and Vue would not be as hot as they are today. After all, GUI development is also programming. It is not enough to describe the interface, so the SDK should be a programming framework similar to UIKit.
 
-最终，我心目中理想的 GUI框架可能是这样的：
+In the end, my ideal GUI framework might look like this:
 
 ![](https://ws1.sinaimg.cn/large/8696f529ly1fwydv9w4vjj20s00p0wfx.jpg)
 
-这样设计可能符合我的几点要求：  
+This design may meet my requirements:
 
-* 跨平台，用 Portable的抽象图形API实现绘图，基本可以抹平平台差异  
-* 轻量级，没有额外图形库的引入，也没有额外语言运行时的引入，除了数据结构和渲染逻辑，没有额外的体积占用
-* 门槛低，用 Javascript作为 SDK实现，怕是没有门槛再低的办法了
-* 动态化，JIT执行的语言写业务可以动态化
-* 历史包袱小，GUI框架本身可以随着应用升级而升级，有问题可以及时修复发版。可以说这样设计其实就是一个没有历史包袱、嵌入式的、去掉了一大堆网络等模块只关心渲染的迷你 WebKit了。
+* Cross-platform, using Portable’s abstract graphics API to achieve drawing, basically smoothing out platform differences
+* Lightweight, no additional graphics library is introduced, and no additional language runtime is introduced, except for data structure and rendering logic, no additional volume occupied
+* Low threshold, using Javascript as the SDK to achieve, I am afraid there is no way to lower the threshold
+* Dynamic, the language writing business executed by JIT can be dynamic
+* The historical burden is small, the GUI framework itself can be upgraded with application upgrades, and problems can be fixed and released in time. It can be said that this design is actually a mini WebKit that has no historical burden, is embedded, and has removed a lot of network modules and only cares about rendering.
 
 
 # The End
-GUI Framework的设计其实一点儿也不简单，View Tree、Layout、Paint任何一个阶段都是一个非常大的课题。上文只是一种看法和畅想，要做一些尝试还是太费时费力了，有这时间不如多玩几把荒野大表哥。
+The design of GUI Framework is actually not simple at all. View Tree, Layout, Paint any stage is a very big topic. The above is just a kind of opinion and imagination, it is too time-consuming and laborious to do some attempts.

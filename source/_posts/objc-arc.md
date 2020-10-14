@@ -1,16 +1,16 @@
 ---
-title: objc的 ARC
+title: ARC of objc
 date: 2017-07-04 10:20:05
 tags:
 ---
 
-ARC 全称被各个网路博客安利这么多年也应该知道了（Auto Reference Counting），中文名就是 自动引用计数。这是一种比较简单的垃圾回收机制，什么是垃圾呢？就是堆分配过程中任何无法被变量或指针达到的地方叫做垃圾。这部分回收重新分配，叫做垃圾收集。
+The full name of ARC has been known by various Internet blogs Amway for so many years (Auto Reference Counting), and the Chinese name is Auto Reference Counting. This is a relatively simple garbage collection mechanism. What is garbage? That is, anything that cannot be reached by variables or pointers in the heap allocation process is called garbage. This part of the recovery and redistribution is called garbage collection.
 
-今天探讨一下引用计数这种垃圾收集在 objc 里面的实现（希望通过一篇野路子文章完整地知道 ARC实现的可以绕道了）。
+Today, I will discuss the implementation of reference counting garbage collection in objc (I hope to fully understand the implementation of ARC can be bypassed through a wild road article).
 
 <!--more-->
-# 垃圾是怎么产生的？
-我们假设一个对象在内存里的布局是一个这样的结构体：
+# How is garbage generated?
+We assume that the layout of an object in memory is a structure like this:
 
 ```c
 struct SomeObject {
@@ -19,16 +19,16 @@ struct SomeObject {
 }
 ```
 
-它在初始化真正做的事是这个：
+What it really does during initialization is this:
 
 ```c
 typedef struct SomeObject * SomeObjectRef;
-SomeObjectRef obj= (SomeObjectRef)malloc(sizeof(struct SomeObject);
+SomeObjectRef obj = (SomeObjectRef)malloc(sizeof(struct SomeObject);
 obj->firstName = (char *)malloc(10);
 obj->lastName = (char *)malloc(15);
 ```
 
-要记住，指针永远只能指向某个内存结构的首地址，那么它所能标记的只是一个类型大小的内存，而你从 malloc 申请的定长内存，永远只有首地址被标记到了。在弹栈的时候，你所用来标记结构体堆地址的指针（栈变量）毫无疑问能够随着弹栈交还它所占的空间，而那些分配在堆上的，被人遗忘后，谁也不知道它们“住在哪儿”，这一块儿内存不可复用，所以产生了“泄露”。要解决这些泄露，就是在弹栈前，写这样的代码：
+Remember that a pointer can always only point to the first address of a certain memory structure, so what it can mark is only a memory of a type and size, and for the fixed-length memory you apply for from malloc, only the first address is always marked. When popping the stack, the pointer (stack variable) you use to mark the heap address of the structure can undoubtedly return the space it occupies with the popping stack, and those allocated on the heap will be forgotten by anyone. Do not know where they "live", this piece of memory is not reusable, so a "leak" occurs. To solve these leaks, write this code before popping the stack:
 
 ```c
 free(obj->firstName);
@@ -36,54 +36,54 @@ free(obj->lastName);
 free(obj);
 ```
 
-有时为了避免野指针，还会在后面加上一个 obj = NULL;
+Sometimes in order to avoid wild pointers, an obj = NULL;
 
-很明显，一共写了7行代码，一半用在了管理内存上，不得不说这真是件非常繁琐的事情。并且，一个 objc对象的结构体远远比上文这个东西复杂得多，如果按照这样的方法，肯定会造成10行代码中一大半都是这种 “free”，简直令人头疼。
+Obviously, a total of 7 lines of code were written, and half of them were used to manage memory. I have to say that this is a very cumbersome thing. Moreover, the structure of an objc object is much more complicated than the above thing. If you follow this method, it will definitely cause more than half of the 10 lines of code to be "free", which is simply a headache.
 
-# objc的引用类型和引用计数
+# objc reference type and reference count
 
-让我们从刚才的 context中冷静一下。回想一下我们之前碰到的一个非典型的引用类型 Block 。我们之前有解释过它如何从一个字面量变为一个结构体再变为一个栈变量，最终引用或返回的过程中变为一个堆变量。它自身会有一个函数指针叫做 Block_copy，这个函数将一个 Block指针挪到堆上，并将 Block的引用计数加1.如果 Block已经在堆上了，直接将引用计数加1。对应的，还有一个函数指针叫做 Block_release，它负责把 Block的引用计数减1，当引用计数为0的时候，会将这个 Block从堆上销毁。
+Let's calm down from the context just now. Recall the atypical reference type Block we encountered earlier. We have explained before how it changes from a literal to a structure and then to a stack variable, and finally becomes a heap variable in the process of referencing or returning. It has a function pointer called Block_copy. This function moves a Block pointer to the heap and increases the reference count of the Block by 1. If the Block is already on the heap, it directly increases the reference count by 1. Correspondingly, there is also a function pointer called Block_release, which is responsible for decrementing the reference count of the block by 1. When the reference count reaches 0, the block will be destroyed from the heap.
 
-Block是一个非典型的引用类型，但和 objc的其他引用类型几乎一样，都靠引用计数来确定一个对象是否应该销毁。然后我们再想一下，objc对象的基本结构，在前文中我们也有提过，那么一个 objc对象的“Block_release”方法就可以对应地被抽象成 [NSObject release]方法。
+Block is an atypical reference type, but it is almost the same as other reference types in objc. It depends on reference counting to determine whether an object should be destroyed. Then we think about the basic structure of the objc object, as we have mentioned in the previous article, then the "Block_release" method of an objc object can be correspondingly abstracted into the [NSObject release] method.
 
-现在好了，objc的引用类型（也叫 objective-c pointer types)都有了用来管理引用计数以及销毁的方法。这就形成了好几年前一直用的 MRC（手动引用计数）。不得不说引用计数是一个管理引用类型内存非常简单的方法，这不需要你像 mark-sweep那样专门分配一个内存用来索引需要被释放的对象，也不需要担心在启动 GC的时候停掉所有的程序，或者担心因为递归算法不够好，栈太深导致爆栈。因为引用计数管理的对象仅仅只做简单的加减法计算被引用的次数，在次数为0时调用销毁，只需要一个栈帧，并且不需要现有的程序停止。
+Well now, objc's reference types (also called objective-c pointer types) have methods for managing reference counting and destruction. This formed the MRC (Manual Reference Counting) that was used years ago. I have to say that reference counting is a very simple way to manage reference type memory. This does not require you to allocate a memory specifically for indexing objects that need to be released like mark-sweep, and you don’t need to worry about stopping everything when starting GC. The program, or worry that because the recursive algorithm is not good enough, the stack is too deep to cause the stack to burst. Because the object managed by reference counting only performs simple addition and subtraction to calculate the number of times it is referenced, and when the number of times is 0, it is called to destroy, only one stack frame is needed, and the existing program does not need to stop.
 
-# 从 MRC到 ARC
+# From MRC to ARC
 
-既然 MRC这么好，为什么还需要 ARC？
+Since MRC is so good, why do we need ARC?
 
-很显然，所有的用户并不是从 Assembly 和 C时代过来的。很可能他们的老师教的是 Java或 JavaScript这种语法简单且有完整 GC的编程语言。因为不是所有人都从计算机科学出身，很可能从软件工程管理或其他方面出身，本身更关注工程和效率。
+Obviously, all users are not from the Assembly and C era. It is likely that their teacher taught a programming language with simple syntax and complete GC like Java or JavaScript. Because not everyone has a background in computer science, it is likely to have a background in software engineering management or other aspects, and pay more attention to engineering and efficiency.
 
-确实在工程和效率这方面，C Family的编程语言确实拖着后腿。如果不是 Xcode帮你管理工程结构，你会发现写一个 Make文件就足以让你头疼。再深入一点，当你写着逻辑非常复杂的应用时，脑子里还要考虑着内存如何管理，这样的写出来的代码几乎是无法与其他人协同工作的。你可以回头看一遍 MRC时代一个 UIViewController的 property的 getter和 setter是如何写的。
+Indeed, in terms of engineering and efficiency, the programming language of the C Family is indeed a drag. If it is not for Xcode to help you manage the project structure, you will find that writing a Make file is enough to give you a headache. Going deeper, when you write an application with a very complex logic, you have to think about how to manage the memory. The code written like this is almost impossible to work with other people. You can look back and see how the getter and setter of a UIViewController property in the MRC era were written.
 
-既然受够了 MRC无尽的 retain/release，ARC也应运而生。ARC本质不是语言层面的产物，只是原本应该由你写的内存管理的代码由编译器为你代劳了。编译器的前端就会正确地猜测应该使用 retain/release的地方并且为你插入这些代码，从而免去了MRC中一遍又一遍重复的工作。
+Now that I was fed up with the endless retain/release of MRC, ARC also came into being. The essence of ARC is not a product of the language level, but the memory management code originally written by you is done by the compiler for you. The front end of the compiler will correctly guess where retain/release should be used and insert these codes for you, thus eliminating the need for repetitive work over and over again in MRC.
 
-# ARC相关的语法
+# ARC related syntax
 
-不过很显然，仅仅靠猜测有时候编译器并不能帮你插入正确的 retain/release，所以 ARC还是有一些语法的。最显然的，你在声明 property的时候，有相关修饰属性的关键字：weak, assign, strong, copy,  unsafe_unretained, retain。简单地看，它们表示的是当 property遇到那一块对象内存时的处理方法。还有一些标记语法，如：__weak, __unsafe_unretained等， 我想所有人都知道，就没必要啰嗦了。
+Obviously, sometimes the compiler cannot help you insert the correct retain/release just by guessing, so ARC still has some syntax. Most obviously, when you declare a property, you have keywords that modify the property: weak, assign, strong, copy, unsafe_unretained, retain. Simply put, they represent the processing method when the property encounters that piece of object memory. There are also some markup syntax, such as: __weak, __unsafe_unretained, etc. I think everyone knows it, so there is no need to be verbose.
 
-不过还有一种内存管理上的问题，就是 一个 objc对象转向 C时，内存的归属权问题。这是一个很危险的问题，C是没有引用计数的，当一个 objc对象转换过来时，内存该由谁管理？若这个问题划分不清是一件很危险的事情。所以 objc的 bridge语法有几种：\_\_bridge, \_\_bridge_retained, \_bridge\_transfer。这是个很有趣的话题，\_\_bridge代表着只获取 objc对象的指针，原来的引用计数啥样就啥样。那么获得 C指针的使用者应该注意不要在对象可能已经销毁的情况下用这个指针。 \_\_bridge\_retained表示获取 objc对象指针的同时将对象的引用计数加1，这就表示使用者在使用结束后应同时调用一次 release将引用计数减1，不然这个对象的引用计数很可能永远无法归零，不过这至少保证了使用者拿到这个指针时对象不会已经销毁了。\_\_bridge\_transfer就更有意思了，当objc对象被这样转换过来的时候，编译器不会在后续代码中为这个对象插入 ARC代码。也就是说引用计数完全交给了获取 C指针引用者管理，管理权被“移交”了。
+However, there is another memory management problem, which is the ownership of memory when an objc object is turned to C. This is a very dangerous question. C has no reference counting. When an objc object is converted, who should manage the memory? If this problem is not clearly divided, it is a very dangerous thing. So there are several bridge syntaxes for objc: \_\_bridge, \_\_bridge_retained, \_bridge\_transfer. This is a very interesting topic. \_\_bridge means that only the pointer of the objc object is obtained, and the original reference count is whatever it is. Then users who have obtained the C pointer should be careful not to use this pointer when the object may have been destroyed. \_\_bridge\_retained means that while obtaining the objc object pointer, the reference count of the object is increased by 1, which means that the user should call release at the same time to decrement the reference count by 1 after the end of use, otherwise the reference count of this object is likely to be forever It cannot be returned to zero, but this at least guarantees that the object will not be destroyed when the user gets the pointer. \_\_bridge\_transfer is even more interesting. When the objc object is converted in this way, the compiler will not insert ARC code for this object in the subsequent code. That is to say, the reference count is completely handed over to the person who obtains the C pointer reference, and the management right is "handed over".
 
-ARC很“聪明”地通过以上的语法来告诉用户使用的注意项。
+ARC is very "smart" through the above grammar to tell users what attention to use.
 
-# 自动释放池
+# Automatic release pool
 
-前文中我们有说当 [NSObject release]被调用时，引用计数为0了，对象会被释放，确实没错，释放后你再也用不到了。不过有时候，你需要一些延迟释放的操作，比如你弱引用了一个新生成的对象，总不能让这个对象一生成就在作用域结束时释放吧？那还有什么意义？可是你因为某种原因又不能强引用他，怎么办？目前，ARC的所有对象生成，几乎都会使用一种延迟释放的机制，叫做 autoreleasepool。
+In the previous article, we said that when [NSObject release] is called, the reference count is 0, and the object will be released. That's right, you will never use it again after release. But sometimes, you need some delayed release operations. For example, you weakly reference a newly generated object. You can't let this object be released when the scope ends, right? What's the point of that? But you can't force him to quote him for some reason, what should you do? At present, almost all object generation of ARC uses a delayed release mechanism called autoreleasepool.
 
-这是个啥玩意？从字面上看，叫自动释放池。
+What is this? Literally, it is called an automatic release pool.
 
-是干什么的？用于在一个合适的时机释放加入自动释放池里的自动管理内存对象。 （这种打官腔简直是放屁）
+What is it for? It is used to release the automatically managed memory objects added to the auto-release pool at an appropriate time. (This kind of official language is just farting)
 
-在 iOS App中，非常明显地从 main函数那边就可以看到，整个 AppDelegate都会处于一个自动释放池中。在后续的操作中，很多对象在初始化后都会加入离自己最近的一个自动释放池中。并且有意思的一点是，每一个 NSThread都会有一个缺省的自动释放池，所以在大多数线程中产生的自动释放对象都会加入到这个释放池。而且我们知道，NSThread是会有一个 RunLoop循环执行，自动释放池释放的实际也是在 RunLoop即将退出的那一刻，这就很巧妙地规避了垃圾回收机制工作时程序被停止的问题了：都没有任务在跑，回收一下垃圾怎么了？
+In iOS App, you can clearly see from the main function that the entire AppDelegate will be in an automatic release pool. In subsequent operations, many objects will be added to the closest automatic release pool after initialization. And the interesting point is that every NSThread will have a default auto-release pool, so auto-release objects generated in most threads will be added to this release pool. And we know that NSThread will execute a RunLoop loop, and the automatic release pool is actually released at the moment RunLoop is about to exit. This cleverly avoids the problem of the program being stopped when the garbage collection mechanism is working: there is no task. What's wrong with running, recycling garbage?
 
-那自动释放池到底是一个怎么样的东西？本质上它就是一个表结构的东西，每一个加入自动释放池的对象都会被它记录下地址（一个指针），在记录自动释放对象之前，这个表还会加入一个“哨兵”对象，这是分页管理存储中一个很有用的简单操作。因为在自动释放池进行释放操作时，需要避免操作不需要触及的区域。在 自动释放池嵌套时就更有用了，每一个自动释放池都只负责释放到自己的“哨兵”处。
+What kind of thing is the automatic release pool? In essence, it is a table structure. Every object added to the auto-release pool will be recorded by it (a pointer). Before the auto-release object is recorded, this table will also add a "sentinel" object, which is paging. A very useful simple operation in managing storage. Because when the automatic release pool performs the release operation, it is necessary to avoid areas that the operation does not need to touch. It is more useful when the automatic release pool is nested. Each automatic release pool is only responsible for releasing to its own "sentinel".
 
-虽然概念上自动释放池是个很简单的东西，但具体实现细节上反而有点复杂，我们也没必要去过多探究。因为你要了解它的原理也没什么用，能正确写 objc就好，如果你要造自己的 GC，干嘛要学这么落后的东西。
+Although the automatic release pool is a very simple thing in concept, the specific implementation details are a bit complicated, and we don't need to explore too much. Because it's useless if you want to understand its principle, it's good to be able to write objc correctly. If you want to build your own GC, why bother to learn something so backward.
 
-# 写在最后
+# Written at the end
 
-如果能看我扯淡到这里，也说明你是一个脱离低级趣味的人了（因为这么无聊你还在看）。我非常好奇当初 iPhone OS是造了什么孽要被用 objc这种“大刑”伺候（知道的人请告诉我）。写写 C++不是挺好的吗？
+If you can see my nonsense here, it also means that you are a person who is out of low-level interest (because you are so boring you are still watching). I am very curious about what evil did the iPhone OS cause to be served by the "big punishment" of objc (if you know, please tell me). Isn't it good to write C++?
 
-而且很多Framework比如 CFNetwork, libclosure, JavascriptCore等等都是 C++实现的，最后反而包一层给 objc用，不是在开倒车么。
+And many Frameworks, such as CFNetwork, libclosure, JavascriptCore, etc., are implemented in C++, but in the end they wrap a layer for objc, isn't it driving backwards?
 
-不过幸好，Swift这门用来替代 C++的语言正代表着未来。
+Fortunately, Swift, the language used to replace C++, represents the future.

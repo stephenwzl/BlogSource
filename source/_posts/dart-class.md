@@ -1,46 +1,46 @@
 ---
-title: Dart 的类
+title: Dart class
 date: 2018-04-25 16:50:33
 tags:
 ---
 
-Dart 是一门真正的面向对象的编程语言，它的继承是由 class和 mixin实现的。每个对象都是一个 class的实例，并且每个 class都由 `Object`这个 class派生。而 mixin意味着所有的 class都是单继承的，但通过 mixin，一个 class里面可以使用其他非父类中的结构。  
+Dart is a true object-oriented programming language, and its inheritance is implemented by classes and mixins. Every object is an instance of a class, and every class is derived from the ʻObject` class. And mixin means that all classes are single inheritance, but through mixin, a class can use structures in other non-parent classes.
 
 <!--more-->
 
-# 实例变量
-声明实例变量和别的语言没什么两样。在 Dart中，所有的实例变量都会隐式地生成 `getter`，而非 `final`标记的实例变量还会隐式地生成 `setter`。
+# Instance variables
+Declaring instance variables is no different from other languages. In Dart, all instance variables will implicitly generate getters, and instance variables that are not marked as final will also implicitly generate setters.
 
 ```dart
 class Point {
   int _x;
   get x => _x;
-  set x(int value) => _x = value;
+  set x(int ​​value) => _x = value;
 }
 ```
 
-假如你在声明实例变量的时候就给它赋值了，那么这个实例变量的调用会比构造函数还要早。
+If you assign a value to the instance variable when you declare it, the instance variable will be called earlier than the constructor.
 
-# 构造函数
-在[前文](/2018/04/20/dart-getting-start/)已经简单地介绍过 Dart的构造函数，所以这里假定读者已知一些基本的用法。我们来看看 Dart中构造函数一些比较有意思的地方。
+# Constructor
+In [previous article](/2018/04/20/dart-getting-start/), Dart's constructor has been briefly introduced, so it is assumed that the reader knows some basic usage. Let's take a look at some of the more interesting aspects of the constructor in Dart.
 
-## 语法糖
-假如你的构造函数只是给一些实例变量赋初值，可以使用语法糖减少代码量。
+## Syntactic sugar
+If your constructor just assigns initial values ​​to some instance variables, you can use syntactic sugar to reduce the amount of code.
 
 ```dart
 class Point {
   num x, y;
-  // 语法糖
+  // Syntactic sugar
   Point(this.x, this.y);
 }
 ```
 
-## 默认构造函数
-如果在声明类的时候没有声明构造函数，Dart 提供一个默认的构造函数，即 `ClassName()`.   
-但**构造函数不会继承**，也就是说父类的构造函数子类不可以使用，子类不提供自己的构造函数的话也只会生成一个默认的构造函数。
+## Default constructor
+If no constructor is declared when declaring the class, Dart provides a default constructor, namely `ClassName()`.
+But the **constructor does not inherit**, which means that the constructor of the parent class cannot be used by the subclass. If the subclass does not provide its own constructor, it will only generate a default constructor.
 
-## 具名构造函数
-使用命名的构造函数会更有语义：
+## Named constructor
+Using named constructors is more semantic:
 
 ```dart
 class Point {
@@ -56,21 +56,21 @@ class Point {
 }
 ```
 
-## 重定向构造函数
-构造函数可以重定向到其他构造函数
+## Redirection constructor
+The constructor can be redirected to other constructors
 
 ```dart
 class Point {
   num x, y;
   Point(this.x, this.y);
   // refirecting constructors
-  Point.bottom(num x) : this(x, 0);
-  Point.left(num y) : this(0, y);
+  Point.bottom(num x): this(x, 0);
+  Point.left(num y): this(0, y);
 }
 ```
 
-## 常量构造函数
-有时候你希望通过构造函数生成一个常量对象
+## Constant constructor
+Sometimes you want to generate a constant object through the constructor
 
 ```dart
 class ImmutablePoint {
@@ -83,8 +83,8 @@ class ImmutablePoint {
 }
 ```
 
-## 初始化列表
-在构造函数的函数体真正执行之前，你还有机会给一些实例变量赋值，这就需要用到初始化列表。
+## Initialization list
+Before the body of the constructor is actually executed, you still have the opportunity to assign values ​​to some instance variables, which requires an initialization list.
   
 ```dart
 class Point {
@@ -96,8 +96,8 @@ class Point {
 }
 ```
 
-## 工厂模式构造函数
-Dart 中史无前例地设计模式出现在了语法上，通过 `factory`关键字声明的构造函数可以更好地帮我们理解该类的设计模式。
+## Factory pattern constructor
+The unprecedented design pattern in Dart appears in the grammar. The constructor declared by the `factory` keyword can better help us understand the design pattern of this class.
 
 ```dart
 class Logger {
@@ -123,17 +123,17 @@ class Logger {
   }
 }
 ```
-> factory 构造函数没有权限访问 this 关键字 
+> The factory constructor does not have permission to access the this keyword
 
-这样在使用这个类的时候，就可以这样：
+So when using this class, you can do this:
 
 ```dart
 var logger = new Logger('UI');
 logger.log('Button clicked');
 ```
 
-## 继承后的构造函数顺序
-前面提到 **构造函数不会继承**，所以子类在继承父类后需要自行声明构造函数。默认情况下，子类构造函数体一开始时就会调用到父类的无参构造函数，然后才会继续执行后续逻辑。  
+## Constructor order after inheritance
+As mentioned earlier, **constructors will not inherit**, so subclasses need to declare their own constructor after inheriting from the parent class. By default, the subclass constructor body will call the parent class's parameterless constructor at the beginning, and then continue to execute the subsequent logic.
 
 ```dart
 class Point {
@@ -153,7 +153,7 @@ main() {
 }
  
 /*
-输出
+Output
 
 in point
 in face
@@ -161,7 +161,7 @@ in face
 */
 ```
 
-但如果你在初始化子类的时候需要调用特定的父类初始化方法，那么你需要在初始化列表中就声明调用哪一个父类构造函数  
+But if you need to call a specific parent class initialization method when initializing a subclass, then you need to declare which parent class constructor to call in the initialization list
 
 ```dart
 
@@ -187,7 +187,7 @@ main() {
 }
 
 /*
-输出
+Output
 
 data is null
 in face
@@ -196,15 +196,15 @@ in face
 
 ```
 
-# 方法
-对象的函数也叫做方法，这种函数表现了该对象的行为。
+# Method
+The function of an object is also called a method, which expresses the behavior of the object.
 
-## 实例方法
-和其他编程语言一样，实例方法才有权限获取 this引用，这里就不多做介绍了。
+## Example method
+Like other programming languages, the instance method has the authority to get this reference, so I won’t introduce it here.
 
 
-## 抽象方法
-抽象方法推荐只在抽象类中使用（在普通类中会产生 warning）。抽象类可以作为一种协议，让其他开发者来遵守，并且实现其中的抽象方法。
+## Abstract method
+Abstract methods are recommended to be used only in abstract classes (warning will be generated in ordinary classes). Abstract classes can be used as a protocol for other developers to follow and implement the abstract methods.
 
 ```dart
 abstract class Doer {
@@ -218,8 +218,8 @@ class EffectiveDoer extends Doer {
 }
 ```
 
-## 运算符覆写
-除了可以覆写方法，运算符也可以被覆写，具体可以被覆写的运算符如下：
+## Operator override
+In addition to overriding methods, operators can also be overridden. The specific operators that can be overridden are as follows:
 
 ```dart
 <  +  |  []  >  /  ^  []=  
@@ -227,7 +227,264 @@ class EffectiveDoer extends Doer {
 -  %  >>
 ```
 
-下面是一个例子：
+
+Xiàmiàn shì yīgè lìzi:
+
+```Dart
+class Vector {
+  final int x, y;
+
+  const Vector(this.X, this.Y);
+
+  /// Overrides + (a + b).
+  Vector operator +(Vector v) {
+    return new Vector(x + v.X, y + v.Y);
+  }
+
+  /// Overrides - (a - b).
+  Vector operator -(Vector v) {
+    return new Vector(x - v.X, y - v.Y);
+  }
+}
+
+void main() {
+  final v = new Vector(2, 3);
+  final w = new Vector(2, 2);
+
+  // v == (2, 3)
+  assert(v.X == 2&& v.Y == 3);
+
+  // v + w == (4, 5)
+  assert((v + w).X == 4&& (v + w).Y == 5);
+
+  // v - w == (0, 1)
+  assert((v - w).X == 0&& (v - w).Y == 1);
+}
+```
+
+rúguǒ nǐ xūyào fù xiě `==`yùnsuàn fú, nǐ hái xūyào chóng xiě yīxià `hashCode`de getter, yīnwèi Dart tōngguò hashCode lái pànduàn duìxiàng de xiāngděng xìng.
+
+# Yǐn shì jiēkǒu
+qíshí Dart de lèi de shēngmíng yě huì yǐn shì dì shēngmíngliǎo zhège lèi de suǒyǒu shǔxìng zǔchéng de jiēkǒu. Suǒyǐ jiǎshè class A bìng bù zhīchí class B de API de shíhòu, jiù kěyǐ shǐyòng A lái shíxiàn B de jiēkǒu, bǎ A dàngzuò B lái yòng.
+
+```Dart
+// A person. The implicit interface contains greet().
+Class Person {
+  // In the interface, but visible only in this library.
+  Final _name;
+
+  // Not in the interface, since this is a constructor.
+  Person(this._Name);
+
+  // In the interface.
+  String greet(String who) =>'Hello, $who. I am $_name.';
+}
+
+// An implementation of the Person interface.
+Class Impostor implements Person {
+  get _name =>'';
+
+  String greet(String who) =>'Hi $who. Do you know who I am?';
+}
+
+String greetBob(Person person) => person.Greet('Bob');
+
+void main() {
+  print(greetBob(new Person('Kathy')));
+  print(greetBob(new Impostor()));
+}
+
+/*
+output:
+
+Hello, Bob. I am Kathy.
+Hi Bob. Do you know who I am?
+
+*/
+```
+
+# Lèi de jìchéng
+yòng `extends`guānjiàn zì shíxiàn lèi de jìchéng, yòng `super`diàoyòng fù lèi shǔxìng
+
+```dart
+class Television {
+  void turnOn() {
+    _illuminateDisplay();
+    _activateIrSensor();
+  }
+  // ···
+}
+
+class SmartTelevision extends Television {
+  void turnOn() {
+    super.TurnOn();
+    _bootNetworkInterface();
+    _initializeMemory();
+    _upgradeApps();
+  }
+  // ···
+}
+```
+
+## jìchéng fù xiě
+lèi de shílì fāngfǎ zài bèi jìchéng hòu kěyǐ fù xiě, jùtǐ fāngfǎ shì shǐyòng `@override`zhùjiě.
+
+```Dart
+class Point {
+  num x, y;
+  Point(this.X, this.Y);
+
+  void say() {
+    print('$x $y');
+  }
+
+}
+
+class Face extends Point {
+
+  @override
+  void say() {
+    super.Say();
+    print('xxxx');
+  }
+}
+```
+
+## noSuchMethod()
+dāng diàoyòng zhě chángshì diàoyòng yīgè gāi lèi shàng bù cúnzài de fāngfǎ shí, gāi fāngfǎ jiù huì qǐ dào zuòyòng, nǐ kěyǐ fù xiě zhège fāngfǎ gàosù diàoyòng zhě.
+
+```Dart
+class A {
+  // Unless you override noSuchMethod, using a
+  // non-existent member results in a NoSuchMethodError.
+  @Override
+  void noSuchMethod(Invocation invocation) {
+    print('You tried to use a non-existent member: ' +
+        '${Invocation.MemberName}');
+  }
+}
+```
+
+# méi jǔ lèixíng
+méi jǔ lèixíng yěshì yī zhǒng class
+
+shēngmíng méi jǔ lèixíng
+
+```dart
+enum Color {red, green, blue}
+```
+
+huòqǔ méi jǔ lèixíng de zhí
+
+```dart
+// méi jǔ lèixíng de jùtǐ zhí hé shùzǔ yīyàng yǒu yīgè index
+assert(Color.Red.Index == 0);
+assert(Color.Green.Index == 1);
+assert(Color.Blue.Index == 2);
+
+// méi jǔ lèixíng de suǒyǒu zhí yě kěyǐ zhuǎnhuàn chéng shùzǔ
+List<Color> colors = Color.Values;
+assert(colors[2] == Color.Blue);
+```
+
+# Mixin
+mixin shì lèi wúfǎ duō jìchéng shí de yī zhǒng jiějué fāngfǎ.
+Yào shǐyòng mixin, zhǐ xūyào `with`guānjiàn zì
+
+```dart
+class Musician extends Performer with Musical {
+  // ···
+}
+
+class Maestro extends Person
+    with Musical, Aggressive, Demented {
+  // ... 
+}
+```
+
+Suīrán yǔyán céngmiàn shàng,mixin de shíxiàn bǐjiào fùzá, bùguò zài shǐyòng yǔyì shàng,mixin qíshí jiùshì xiǎngxiàng dì nàyàng:
+
+```Dart
+class S {
+  twice(int x) => 2* x;
+}
+
+abstract class I {
+  twice(x);
+}
+
+abstract class J {
+  thrice(x);
+}
+class K extends S implements I, J {
+  int thrice(x) => 3* x;
+}
+
+class B {
+  twice(x) => x + x;
+}
+
+class A = B with K;
+
+main() {
+  var a = new A();
+  var c = new K();
+  print(a.Thrice(1));  // class B's twice
+  print(c.Twice(1));   // class S's twice
+}
+```
+ 
+guānyú Mixin, hòuxù hái huì zhuānmén kāi yī piān wénzhāng jièshào guānyú Dart Mixin de shèjì.
+
+# Lèi biànliàng hé lèi fāngfǎ
+tōngguò `static`guānjiàn zì, nǐ kěyǐ shíxiàn class céngjí de fāngfǎ hé biànliàng
+
+## lèi biànliàng
+
+```dart
+class Queue {
+  static const int initialCapacity = 16;
+  // ···
+}
+
+void main() {
+  assert(Queue.InitialCapacity == 16);
+}
+```
+
+lèi zhōng de jìngtài biànliàng zhǐyǒu zài bèi yòng dào de shíhòu cái huì chūshǐhuà
+
+## lèi fāngfǎ
+
+```dart
+import'dart:Math';
+
+class Point {
+  num x, y;
+  Point(this.X, this.Y);
+
+  static num distanceBetween(Point a, Point b) {
+    var dx = a.X - b.X;
+    var dy = a.Y - b.Y;
+    return sqrt(dx* dx + dy* dy);
+  }
+}
+
+void main() {
+  var a = new Point(2, 2);
+  var b = new Point(4, 4);
+  var distance = Point.DistanceBetween(a, b);
+  assert(2.8 < Distance&& distance < 2.9);
+  Print(distance);
+}
+```
+kàn qǐlái hé bié de biānchéng yǔyán méishénme liǎngyàng. Zhídé yī tí de shì, lèi fāngfǎ kěyǐ bèi zuòwéi chángliàng shǐyòng.
+
+# The End
+lèi shì liǎojiě miànxiàng duìxiàng shèjì de zhòngyào tújìng, cóng běn piān wénzhāng nǐ kěyǐ fāxiàn,Dart de miànxiàng duìxiàng shèjì jì jiǎndān yòu jiǎnjié, dàn yòu bù shī qiángdà xìng.
+收起
+4077/5000
+Below is an example:
 
 ```dart
 class Vector {
@@ -240,9 +497,9 @@ class Vector {
     return new Vector(x + v.x, y + v.y);
   }
 
-  /// Overrides - (a - b).
+  /// Overrides-(a-b).
   Vector operator -(Vector v) {
-    return new Vector(x - v.x, y - v.y);
+    return new Vector(x-v.x, y-v.y);
   }
 }
 
@@ -256,15 +513,15 @@ void main() {
   // v + w == (4, 5)
   assert((v + w).x == 4 && (v + w).y == 5);
 
-  // v - w == (0, 1)
-  assert((v - w).x == 0 && (v - w).y == 1);
+  // v-w == (0, 1)
+  assert((v-w).x == 0 && (v-w).y == 1);
 }
 ```
 
-如果你需要覆写 `==`运算符，你还需要重写一下 `hashCode`的 getter，因为 Dart通过 hashCode来判断对象的相等性。
+If you need to override the `==` operator, you also need to rewrite the getter of `hashCode`, because Dart uses hashCode to determine the equality of objects.
 
-# 隐式接口
-其实 Dart的类的声明也会隐式地声明了这个类的所有属性组成的接口。所以假设 class A并不支持 class B的 API的时候，就可以使用 A来实现 B的接口，把 A当做 B来用。
+# Implicit interface
+In fact, the declaration of Dart's class will also implicitly declare the interface composed of all the attributes of this class. So assuming that class A does not support the API of class B, you can use A to implement the interface of B, and use A as B.
 
 ```dart
 // A person. The implicit interface contains greet().
@@ -276,14 +533,14 @@ class Person {
   Person(this._name);
 
   // In the interface.
-  String greet(String who) => 'Hello, $who. I am $_name.';
+  String greet(String who) =>'Hello, $who. I am $_name.';
 }
 
 // An implementation of the Person interface.
 class Impostor implements Person {
-  get _name => '';
+  get _name =>'';
 
-  String greet(String who) => 'Hi $who. Do you know who I am?';
+  String greet(String who) =>'Hi $who. Do you know who I am?';
 }
 
 String greetBob(Person person) => person.greet('Bob');
@@ -302,8 +559,8 @@ Hi Bob. Do you know who I am?
 */
 ```
 
-# 类的继承
-用 `extends`关键字实现类的继承，用 `super`调用父类属性
+# Class inheritance
+Use the ʻextends` keyword to implement class inheritance, and use `super` to call the parent class attribute
 
 ```dart
 class Television {
@@ -325,8 +582,8 @@ class SmartTelevision extends Television {
 }
 ```
 
-## 继承覆写
-类的实例方法在被继承后可以覆写，具体方法是使用 `@override`注解。
+## Inheritance Overwrite
+The instance method of the class can be overwritten after being inherited. The specific method is to use the @override annotation.
 
 ```dart
 class Point {
@@ -350,7 +607,7 @@ class Face extends Point {
 ```
 
 ## noSuchMethod()
-当调用者尝试调用一个该类上不存在的方法时，该方法就会起到作用，你可以覆写这个方法告诉调用者。
+When the caller tries to call a method that does not exist on the class, the method will work, and you can override this method to tell the caller.
 
 ```dart
 class A {
@@ -358,37 +615,37 @@ class A {
   // non-existent member results in a NoSuchMethodError.
   @override
   void noSuchMethod(Invocation invocation) {
-    print('You tried to use a non-existent member: ' +
+    print('You tried to use a non-existent member: '+
         '${invocation.memberName}');
   }
 }
 ```
 
-# 枚举类型
-枚举类型也是一种 class
+# Enumeration type
+Enumeration type is also a class
 
-声明枚举类型
+Declare enum type
 
 ```dart
-enum Color { red, green, blue }
+enum Color {red, green, blue}
 ```
 
-获取枚举类型的值
+Get the value of an enumerated type
 
 ```dart
-// 枚举类型的具体值和数组一样有一个 index
+// The specific value of an enumeration type has an index like an array
 assert(Color.red.index == 0);
 assert(Color.green.index == 1);
 assert(Color.blue.index == 2);
 
-// 枚举类型的所有值也可以转换成数组
+// All values ​​of enumeration types can also be converted into arrays
 List<Color> colors = Color.values;
 assert(colors[2] == Color.blue);
 ```
 
 # Mixin
-mixin是类无法多继承时的一种解决方法。
-要使用 mixin，只需要 `with`关键字
+Mixin is a solution when the class cannot inherit multiple times.
+To use mixin, you only need the `with` keyword
 
 ```dart
 class Musician extends Performer with Musical {
@@ -397,11 +654,11 @@ class Musician extends Performer with Musical {
 
 class Maestro extends Person
     with Musical, Aggressive, Demented {
-  // ... 
+  // ...
 }
 ```
 
-虽然语言层面上，mixin的实现比较复杂，不过在使用语义上，mixin其实就是想象的那样：
+Although the implementation of mixin is more complicated at the language level, in terms of semantics, mixin is actually as imagined:
 
 ```dart
 class S {
@@ -428,17 +685,17 @@ class A = B with K;
 main() {
   var a = new A();
   var c = new K();
-  print(a.thrice(1));  // class B's twice
-  print(c.twice(1));   // class S's twice
+  print(a.thrice(1)); // class B's twice
+  print(c.twice(1)); // class S's twice
 }
 ```
  
-关于 Mixin，后续还会专门开一篇文章介绍关于 Dart Mixin的设计。
+Regarding Mixin, a follow-up article will be devoted to the design of Dart Mixin.
 
-# 类变量和类方法
-通过 `static`关键字，你可以实现 class 层级的方法和变量
+# Class variables and class methods
+With the `static` keyword, you can implement class-level methods and variables
 
-## 类变量
+## Class variables
 
 ```dart
 class Queue {
@@ -451,20 +708,20 @@ void main() {
 }
 ```
 
-类中的静态变量只有在被用到的时候才会初始化
+Static variables in the class are only initialized when they are used
 
-## 类方法
+## Class method
 
 ```dart
-import 'dart:math';
+import'dart:math';
 
 class Point {
   num x, y;
   Point(this.x, this.y);
 
   static num distanceBetween(Point a, Point b) {
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
+    var dx = a.x-b.x;
+    var dy = a.y-b.y;
     return sqrt(dx * dx + dy * dy);
   }
 }
@@ -473,11 +730,11 @@ void main() {
   var a = new Point(2, 2);
   var b = new Point(4, 4);
   var distance = Point.distanceBetween(a, b);
-  assert(2.8 < distance && distance < 2.9);
+  assert(2.8 <distance && distance <2.9);
   print(distance);
 }
 ```
-看起来和别的编程语言没什么两样。值得一提的是，类方法可以被作为常量使用。
+It looks no different from other programming languages. It is worth mentioning that class methods can be used as constants.
 
 # The End
-类是了解面向对象设计的重要途径，从本篇文章你可以发现，Dart的面向对象设计既简单又简洁，但又不失强大性。
+Classes are an important way to understand object-oriented design. From this article, you can find that Dart's object-oriented design is simple and concise, but it is powerful.

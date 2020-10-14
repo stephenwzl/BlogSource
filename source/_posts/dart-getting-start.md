@@ -1,5 +1,5 @@
 ---
-title: 认识 Dart语言
+title: Know Dart language
 date: 2018-04-20 15:06:19
 tags:
 ---
@@ -7,39 +7,39 @@ tags:
 <img src="/images/dart-logo.svg" style="max-width: 400px;"/>
 <br/>
   
-Dart 是一门开源的编程语言，由 Google Chrome团队开发并维护。  
-经过一段时间简单的尝试使用，确实可以让人感觉到这是一门旨在改进客户端开发体验的编程语言，为苦于 JavaScript已久的我们带来了一丝曙光。  
-本文介绍 Dart语言基础的上手使用。
+Dart is an open source programming language developed and maintained by the Google Chrome team.
+After a period of simple trial and use, it can indeed make people feel that this is a programming language designed to improve the client development experience, bringing a glimmer of dawn to us who have been suffering from JavaScript for a long time.
+This article introduces the basics of Dart language to use.
 
 <!--more-->
 
-# 安装 Dart
-由于手头没有 Linux的机器，所以简介一下 macOS环境的安装。  
-Dart 目前虽然已经发展到了 **Dart2**，增加了许多新特性，但本质没有太大的变化，为了更好地了解 Dart的标准，我们直接安装默认的 Dart SDK。  
+# Install Dart
+Since there is no Linux machine at hand, I will introduce the installation of macOS environment.
+Although Dart has developed to **Dart2**, many new features have been added, but the essence has not changed much. In order to better understand the Dart standards, we directly install the default Dart SDK.
 
-> 请确保已经安装了 homebrew
+> Please make sure homebrew is installed
 
-打开终端 App，输入：
+Open the terminal App and enter:
 
 ```shell
 brew tap dart-lang/dart
 brew install dart
 ```
 
-> 截止发文日，Dart 默认的 SDK仍不是 Dart2，不过不用担心，并没有太大变化，我们从 1开始看起。
+> As of the date of posting, Dart's default SDK is still not Dart2, but don't worry, it hasn't changed much. Let's start with 1.
 
-# 选择 IDE
-工欲善其事必先利其器，挑选一个合适的 IDE是非常重要的。Atom、Sublime Text、VSCode、Intellij IDEA都有 Dart插件。笔者挑选了 Intellij IDEA 作为本文的 IDE，并且安装了 `Dart Plugin`。  
-打开 IDEA的 `Preference` -> `Languages & Frameworks` -> `Dart`，配置 Dart SDK 的 path: 
+# Choose IDE
+If you want to do your job well, you must first sharpen your tools. It is very important to choose a suitable IDE. Atom, Sublime Text, VSCode, Intellij IDEA all have Dart plugins. The author chose Intellij IDEA as the IDE for this article, and installed `Dart Plugin`.
+Open IDEA's `Preference` -> `Languages ​​& Frameworks` -> `Dart`, configure the Dart SDK path:
 ![](/images/dart-intellij-idea.png)
 
-配置好后，IDEA就能正确地给你提示标准库函数，并且能帮你做语言分析，写起来就很舒服了。
+After configuration, IDEA can prompt you correctly for standard library functions, and can help you do language analysis, so it is very comfortable to write.
 
 
 
-# 第一行 Dart
+# First line Dart
 
-为了简单地体验一下 Dart，我们直接新建一个 `demo.dart`文件就可以了，可以在 IDEA中打开。一个基本的 hello world 如下：
+In order to experience Dart simply, we can directly create a new `demo.dart` file, which can be opened in IDEA. A basic hello world is as follows:
 
 ```dart
 // demo.dart
@@ -49,40 +49,40 @@ void main() {
 }
 ```
 
-然后在命令行中执行 `dart demo.dart`，命令行就会输出:
+Then execute `dart demo.dart` on the command line, the command line will output:
 
 ```
 dart demo.dart ↵
 hello world
 ```
 
-Dart 和绝大多数编译型语言一样，都要求 main作为语言执行的入口(entrypoint)，而不是像 JavaScript那样解释执行。所以显而易见，Dart是编译型语言。  
-但我们在运行 demo.dart时并没有先编译，这是因为 Dart通过 VM来运行，在载入源码时先编译成字节码，再通过字节码执行，这样的好处是执行速度会比 JIT代码快很多，弊端就是代码的载入到真正执行的速度就比较慢了。所以，Dart也支持编译成 AOT代码，这样代码载入运行的速度能得到很大的提升。
+Dart, like most compiled languages, requires main as the entrypoint of language execution, rather than interpretation and execution like JavaScript. So obviously, Dart is a compiled language.
+But we did not compile first when we ran demo.dart. This is because Dart runs through the VM. When the source code is loaded, it is compiled into bytecode and then executed by bytecode. The advantage of this is that the execution speed will be faster than JIT. The code is much faster. The disadvantage is that the speed of the code from loading to actual execution is relatively slow. Therefore, Dart also supports compilation into AOT code, so that the speed of code loading and running can be greatly improved.
 
-# Dart 语法初探
-在知道如何简单地运行 dart代码后，我们来看一下 Dart的语法。
-## 变量和类型
-在 Dart中，我们可以用 `var`或者具体的类型来声明一个变量：
+# Dart grammar
+After knowing how to simply run dart code, let's take a look at the syntax of Dart.
+## Variables and types
+In Dart, we can declare a variable with `var` or a specific type:
 
 ```dart
-var name = 'Bob';
+var name ='Bob';
 int num = 9527;
 ```
 
-默认情况下，未初始化的变量的值都是 `null`
+By default, the values ​​of uninitialized variables are all `null`
 
 ```dart
 int count;
-print(count == null); 	// true
+print(count == null); // true
 ```
-这样我们就不用担心在一些情况下无法断定一个传递过来的变量到底是 `undefined` 还是`null`了。因为在 Dart中，所有未定义的情况都是 null。  
+This way we don't have to worry about being unable to determine whether a passed variable is ʻundefined` or `null` in some cases. Because in Dart, all undefined cases are null.
 
-Dart 是类型安全的语言，并且所有类型都是对象类型，所有的类型的顶层都来自于 `Object`，理所当然地，`null`也是一个对象。所以，`var`关键字只是一个类型的引用，使用它所声明的对象只是该对象类型的一个引用，这个过程由编译器完成，并不需要关心。  
-Dart 拥有比较简单的内置类型，如 Number, String, Boolean, List, Map, Runes, Symbols，就不作一一介绍了。
+Dart is a type-safe language, and all types are object types. The top level of all types comes from ʻObject`. Of course, `null` is also an object. Therefore, the `var` keyword is only a reference to a type, and the object declared using it is only a reference to the object type. This process is completed by the compiler and does not need to be concerned.
+Dart has relatively simple built-in types, such as Number, String, Boolean, List, Map, Runes, Symbols, so I won't introduce them one by one.
 
-## 函数和闭包
-函数是 Dart执行的基本单元，在函数外的表达式不能获得正确的执行。  
-一个基本的函数如下：
+## Functions and closures
+Function is the basic unit of Dart execution, expressions outside the function cannot be executed correctly.
+A basic function is as follows:
 
 ```dart
 void sayHello() {
@@ -90,30 +90,30 @@ void sayHello() {
 }
 ```
 
-格式和大部分语言一样就不作介绍了，值得一提的是，如果返回值是 `void`，那么 `void`是可以省略的。  
-如果你的函数体只有一行返回值，你可以用**箭头函数**：
+The format is the same as in most languages. It is worth mentioning that if the return value is `void`, then `void` can be omitted.
+If your function body has only one line of return value, you can use **arrow function**:
 
 ```
 bool isZero(int num) => num == 0;
 ```
 
-函数其实也是一个对象，你可以把**函数作为参数**传递或者赋值：
+A function is actually an object, you can pass or assign a function as a parameter:
 
 ```dart
-var loudify = (msg) => '!!! ${msg.toUpperCase()} !!!';
-print(loudify('hello') == '!!! HELLO !!!');
+var loudify = (msg) =>'!!! ${msg.toUpperCase()} !!!';
+print(loudify('hello') =='!!! HELLO !!!');
 ```
 
-当然，你也可以用**匿名函数**来迭代 List: 
+Of course, you can also use **anonymous functions** to iterate the List:
 
 ```dart
-var list = ['apples', 'bananas', 'oranges'];
+var list = ['apples','bananas','oranges'];
 list.forEach((item) {
   print('${list.indexOf(item)}: $item');
 });
 ```
 
-接下来要提到 Dart中对作用域比较友好的一点了，就是**语义化的作用域**，这一点在闭包中体现得淋漓尽致：
+Next, I want to mention one of the more friendly scopes in Dart, which is the semantic scope, which is vividly reflected in the closure:
 
 ```dart
 Function makeAdder(num addBy) {
@@ -132,23 +132,23 @@ void main() {
 }
 ```
 
-在上述代码中，`add2`变量获得了一个 `(num i) => 2 + i;`的闭包， `add4`获得了一个 `(num i) => 4 + i;`的闭包。 这个逻辑完全和你的代码语义一致，如果在别的语言中，你可能就不会这么幸运了。  
-语义化的作用域给我们带来的好处就是你可以放心地编码，而不用担心语言中的坑。
+In the above code, the ʻadd2` variable gets a closure of `(num i) => 2 + i;`, and ʻadd4` gets a closure of `(num i) => 4 + i;`. This logic is completely consistent with the semantics of your code, if you are in other languages, you may not be so lucky.
+The benefit of semantic scope is that you can code with confidence without worrying about pitfalls in the language.
 
-## 运算符
-Dart 的运算符和绝大部分语言的运算符都一样，所以你可以用熟悉的方式编码。不过 Dart多了几个有意思的运算符。
+## Operator
+Dart's operators are the same as those of most languages, so you can code them in a familiar way. But Dart has a few more interesting operators.
 
-**`?.`运算符**：假设 Person这个类有 `sayHello()`函数，p是 Person的一个实例。那么 `p?.sayHello()` 表示 p 为 null的时候避免抛出 exception  
-**`is`运算符**：如果 p是 Person这个类的实例，那么 `p is Person`返回 true  
-**`??`运算符**：`a ?? b`表达式表示如果 a不为 null，返回 a的值，否则返回 b
-**`??=`运算符**：`b ??= value`表示如果 b为 null则给 b赋值 value，否则不赋值
+**`?.` Operator**: Suppose that the Person class has a `sayHello()` function, and p is an instance of Person. Then `p?.sayHello()` means avoid throwing an exception when p is null
+**ʻIs` operator**: If p is an instance of the Person class, then `p is Person` returns true
+**`??` Operator**: ʻa ?? b` expression means that if a is not null, return the value of a, otherwise return b
+**`??=`Operator**: `b ??= value` means that if b is null, assign a value to b, otherwise do not assign a value
 
-## 流程控制
-Dart 保持了标准的流程控制语法：`if-else`, `for`, `while`, `do-while`, `break/continue`, `switch-case`, `assert`.
-值得一提的是 `assert`，它可以阻止你的代码执行流程（和 C中的 assert类似），不过它只在 Dart的 check mode有用（类似于开发环境），在 production mode无效。
+## Process control
+Dart maintains the standard flow control syntax: ʻif-else`, `for`, `while`, `do-while`, `break/continue`, `switch-case`, ʻassert`.
+It is worth mentioning that ʻassert`, which can prevent your code execution flow (similar to assert in C), but it is only useful in Dart's check mode (similar to a development environment), and not in production mode.
 
-## 类
-在 Dart中，声明并使用一个类很简单：
+## Class
+In Dart, declaring and using a class is simple:
 
 ```dart
 class Point {
@@ -158,105 +158,104 @@ class Point {
 
 void main() {
   var point = new Point();
-  point.x = 4; 
-  assert(point.x == 4); 
-  assert(point.y == null); 
+  point.x = 4;
+  assert(point.x == 4);
+  assert(point.y == null);
 }
 ```
 
-**构造函数**：Dart的构造函数很方便，你可以很方便地写
+**Constructor**: Dart's constructor is very convenient, you can write it easily
 
 ```dart
 class Point {
   num x, y;
 
-  // 常见的标准构造函数
+  // Common standard constructor
   Point(num x, num y) {
     this.x = x;
     this.y = y;
   }
   
-  // 语法糖，作用和上面一样
+  // Syntactic sugar, the same as above
   Point(this.x, this.y);
   
-  // 可以命名一个特殊的构造函数
+  // You can name a special constructor
   Point.origin() {
-  	x = 0;
-  	y = 0;
+  x = 0;
+  y = 0;
   }
   
-  // 初始化成员列表，这里不能使用 this关键字给 x/y 赋值
+  // Initialize the member list, you cannot use this keyword to assign values ​​to x/y here
   Point()
     : x = 0,
       y = 0 {
-    print('初始化成员列表');
+    print('Initialize member list');
   }
 }
 ```
 
-值得一提的是，Dart 没有 `public`、`private`这些关键字，方法名前面加上 `_`即可作为 private方法使用。默认都是 public。  
-Dart 还支持抽象类，这样我们就可以来约定一些协议，然后具体的实现放到别的地方去。
+It is worth mentioning that Dart does not have keywords such as `public` and `private`, and the method name can be used as a private method with `_` in front of it. The default is public.
+Dart also supports abstract classes, so that we can agree on some agreements, and then put the concrete implementation in other places.
 
 ```dart
 abstract class AbstractContainer {
-  // 这里可以定义构造函数、成员变量、方法等待
-  void updateChildren(); // 抽象方法.
+  // Here you can define constructors, member variables, method waits
+  void updateChildren(); // Abstract method.
 }
 
 class SpecializedContainer extends AbstractContainer {
   void updateChildren() {
-    // 这里提供方法的实现，这样这个方法就不是抽象的了
+    // The implementation of the method is provided here, so that the method is not abstract
   }
-  // 未实现的抽象方法会抛一个 warning，但并不妨碍对象实例化
+  // Unimplemented abstract methods will throw a warning, but it does not prevent object instantiation
 }
 ```
-Dart 的类很强大，篇幅限制，后续再开文介绍更强大的特性。
+Dart's classes are very powerful and limited in space. Later, I will open an article to introduce more powerful features.
 
-## 错误处理 
-Dart 的错误处理也很 Modern，由于 Dart是类型安全的，所以错误处理可以根据类型，更方便一点：
+## Error handling
+Dart's error handling is also very Modern. Because Dart is type-safe, error handling can be based on type, which is more convenient:
 
 ```dart
 // demo
 try {
   breedMoreLlamas();
 } on OutOfLlamasException {
-  // 特定类型的 exception
+  // specific type of exception
   buyMoreLlamas();
 } on Exception catch (e) {
-  // 不确定什么类型的 exception
+  // Not sure what type of exception
   print('Unknown exception: $e');
 } catch (e) {
-  // 没有类型，统一处理
+  // No type, unified processing
   print('Something really unknown: $e');
 }
 ```
 
-## 库
-一门编程语言的生态取决于它的库，来看一看 Dart库导入的语法。
+## Library
+The ecology of a programming language depends on its library. Let's take a look at the syntax imported by the Dart library.
 
 ```dart
-// 导入 html库
-import 'dart:html';
+// Import html library
+import'dart:html';
 
-// 只导入一部分
-import 'package:test/test.dart';
+// Import only part
+import'package:test/test.dart';
 
-// 给个 alias
-import 'package:lib2/lib2.dart' as lib2;
+// give an alias
+import'package:lib2/lib2.dart' as lib2;
 
-// 只导入该库中的 foo
-import 'package:lib1/lib1.dart' show foo;
+// Only import foo in this library
+import'package:lib1/lib1.dart' show foo;
 
-// 除了 foo全都导入
-import 'package:lib2/lib2.dart' hide foo;
+// Import everything except foo
+import'package:lib2/lib2.dart' hide foo;
 
-// 懒加载
-import 'package:greetings/hello.dart' deferred as hello;
+// lazy loading
+import'package:greetings/hello.dart' deferred as hello;
 ```
 
-如何实现一个库可能讲起来篇幅长一点，所以打算放到另外一篇文章中去。
+How to implement a library may be a bit longer, so I plan to put it in another article.
 
 # The End
-本篇文章主要就是探讨一下 Dart语言中略微有点不同的地方，这样初学者在上手时会比较轻松。Dart 其实还有不少高级一点的内容，为了避免混淆，我打算全部都另开文章介绍。  
-这样的话我们就可以有一条清晰而又简单的 Dart学习路线。
-
+This article is mainly to explore the slightly different places in the Dart language, so that beginners will be easier to get started. Dart actually has a lot of advanced content. To avoid confusion, I plan to introduce all of them in separate articles.
+In this way, we can have a clear and simple learning route for Dart.
