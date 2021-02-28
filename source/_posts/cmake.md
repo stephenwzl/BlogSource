@@ -1,34 +1,34 @@
 ---
-title: Understanding CMake
+title: 了解 CMake
 date: 2017-12-25 20:00:43
 tags:
 ---
 
 ![](/images/20171219190328.png)
 
-If you need to look at many open source projects frequently, especially those written in C/C++, you must learn the basic use of CMake.
+如果你需要经常看众多开源的项目，尤其是 C/C++编写的项目，你一定要学会 CMake的基本使用。
 
-No why
+没有为什么
 
 <!--more-->
 
-# Installation
-On macOS, you can install CMake directly through homebrew, and on other Linux distributions, you can also install it through the corresponding package manager.
+# 安装
+在 macOS上，你可以直接通过 homebrew安装 CMake，在其他 Linux发行版上，你也可以通过对应的包管理器安装。
 
 # Hello World
-Create a directory and put a very simple source code file in it, called main.c
+创建一个目录，里面放一个非常简单的源代码文件，叫做 main.c
 
 ```c
 #include <stdio.h>
  
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) 
 {
   printf("hello world\n");
   return 0;
 }
 ```
 
-In the same level directory, add a CmakeLists.txt file with the following content:
+在同级目录中，添加一个 CmakeLists.txt文件，内容如下：
 
 ```cmake
 cmake_minimum_required(VERSION 2.8)
@@ -38,7 +38,7 @@ project(cmakeTutorial)
 add_executable(bin main.c)
 ```
 
-Then, in your code directory:
+然后，在你的代码目录里面：
 
 ```shell
 mkdir .build
@@ -48,22 +48,22 @@ make
 ./bin
 ```
 
-After a fierce operation, you will find that the code you just wrote ran out
+一通猛如虎的操作后你会发现刚才写的代码跑出来了
 
-## Hello World interpretation
+## Hello World解读
 
-I won't introduce the C code much, just look at the CMakeKLists.txt file.
+C代码我就不多做介绍了，直接看 CMakeKLists.txt文件。
 
-"Cmake_minimum_required" means the minimum CMake version that can be used. If your installed CMake is less than 2.8, you cannot "cmake ..".
+“cmake_minimum_required” 表示最小可使用的 CMake版本，如果你安装的 CMake小于 2.8是没法 “cmake ..”的。
 
-"Project(cmakeTutorial)" means to name your current project
+“project(cmakeTutorial)” 表示给你当前的项目命名
 
-"Add_executable(bin main.c)" means that the current project goal is to compile into an executable bin file, and the source code implementation is main.c.
+“add_executable(bin main.c)” 表示当前项目目标是编译到可执行的 bin文件中去，源码实现是 main.c。
 
-At least by setting the compilation target, we achieved a CMake compilation of C code. But obviously only compiling one file is not what we want. It may be faster to call clang directly on the command line from a file.
+至少通过设定编译目标，我们实现了一次 C代码的 CMake编译。 但很明显只编译一个文件不是我们想要的，一个文件直接命令行调用 clang可能还更快点。
 
-# Multi-source file compilation
-In order to demonstrate multi-file compilation, let's split printf into a single function to try again, create hello.h
+# 多源文件编译
+为了演示一下多文件编译，我们再把 printf 给拆分成一个单独的函数试一下，创建 hello.h
 
 ```c
 #ifndef _CMAKE_TUTORIAL_HELLO
@@ -74,7 +74,7 @@ extern void hello();
 #endif
 ```
 
-Create hello.c
+创建 hello.c
 
 ```c
 #include <stdio.h>
@@ -85,19 +85,19 @@ void hello()
 }
 ```
 
-Modify main.c
+修改 main.c
 
 ```c
 #include "hello.h"
  
-int main(int argc, char *argv[])
+int main(int argc, char *argv[]) 
 {
   hello();
   return 0;
 }
 ```
 
-Then, we only need to add another hello.c to add_executable in CMakeLists.txt
+然后，我们只需要把 CMakeLists.txt中的 add_executable里面再添加一个 hello.c就好了
 
 ```cmake
 cmake_minimum_required(VERSION 2.8)
@@ -107,43 +107,43 @@ project(cmakeTutorial)
 add_executable(bin main.c hello.c)
 ```
 
-If you try again in the .build directory, you can still compile and run successfully.
+你再在 .build目录执行一遍猛如虎的操作试试，还是能编译运行成功的。
 
-But what if I have N source files, it is too troublesome to manually one by one, you can change it like this:
+但是假如我有 N个源文件咋办，手动一个一个太麻烦了，可以这样改:
 
 ```cmake
 cmake_minimum_required(VERSION 2.8)
  
 project(cmakeTutorial)
  
-aux_source_directory(./DIRSRCS)
+aux_source_directory(./ DIRSRCS)
  
 add_executable(bin ${DIRSRCS})
 ```
 
-Use the built-in function aux_source_directory of CMakeLists.txt to scan the source code files of a directory and assign them to a variable. (You always remember that the source file is an implementation file like .c/.cc/.cpp)
+用了 CMakeLists.txt的内置函数 aux_source_directory，扫描一个目录的源代码文件，赋值给一个变量。（你始终记住源码文件是 .c/.cc/.cpp 这种实现文件)
 
-But putting all the code (including header files) in one directory is bad, it looks like it was written by a rookie. Let's implement multiple directories next.
+但是把所有代码（包括头文件）放在一个目录下面很糟糕，看起来像是菜鸟写的。我们接下来实现一下多个目录。
 
-# Multi-directory compilation
+# 多目录编译
 
-If I created a "hello" directory and dragged hello.h and hello.c into it, based on the above experience, you might want to write CMakeLists.txt like this:
+假如我创建了一个 “hello”目录，并且把 hello.h , hello.c拖了进去，根据上面的经验，你可能会想 CMakeLists.txt这么写：
 
 ```cmake
 cmake_minimum_required(VERSION 2.8)
  
 project(cmakeTutorial)
  
-aux_source_directory(./DIRSRCS)
+aux_source_directory(./ DIRSRCS)
 aux_source_directory(./hello HELLO_SRCS)
  
 add_executable(bin ${DIRSRCS} ${HELLO_SRCS})
 ```
 
-However, the turning point has come. However, you usually write for the code to be divided into modules when you divide the directory, so the more files in the subdirectory, the worse it looks (forced bad). Usually it is because one of your submodules wants to be compiled separately for use. So we can compile the sub-module separately into a library for the main project.
+但是，转折来了。但是，你通常分目录的时候是为了代码分模块写的，那么子目录里面文件越多, 这看起来就越糟糕（强行糟糕） 通常情况是因为你的一个子模块希望能单独编译出去用。所以我们可以把子模块单独编译成库，给主项目用。
 
-# Compile and link static library
-Add a CMakeLists.txt in the hello directory
+# 编译和链接静态库
+在 hello目录里面添加一个 CMakeLists.txt
 
 ```cmake
 cmake_minimum_required(VERSION 2.8)
@@ -154,14 +154,14 @@ add_library(hello ${SRCFILES})
 
 ```
 
-Then we modify the original CMakeLists.txt:
+然后我们把原来的那个 CMakeLists.txt修改一下：
 
 ```cmake
 cmake_minimum_required(VERSION 2.8)
  
 project(cmakeTutorial)
  
-aux_source_directory(./DIRSRCS)
+aux_source_directory(./ DIRSRCS)
 add_subdirectory(hello)
  
 add_executable(bin ${DIRSRCS})
@@ -170,39 +170,39 @@ target_link_libraries(bin hello)
 
 ```
 
-that's it.
+这样就可以了。
 
-add_subdirectory will automatically cmake subdirectories when the main cmake is done, and the subdirectories can be written normally.
+add_subdirectory会在主 cmake时自动 cmake子目录，而子目录就正常写就可以了。
 
-The hello directory specifies its own source file to be compiled into a static library called hello, and then the CMakeLists.txt in the main directory specifies the link to target_link_libraries.
+hello目录指定了自己的源文件编译成一个静态库叫 hello，然后主目录的 CMakeLists.txt里面指定了最后需要进行 target_link_libraries的链接。
 
-Moreover, the compiled product you see in the .build directory is obviously libhello.a
+而且，你在 .build目录看到的编译产物很明显也能见到 libhello.a
 
-If you want to compile a dynamic library, just add SHARED after the library name of add_library, such as "add_library(hello SHARED ${SRCFILES})"
+如果你想编译出一个动态库，只需要在 add_library的库名称后面加上 SHARED即可，如 “add_library(hello SHARED ${SRCFILES})”
 
 
-# head File
+# 头文件
 
-After linking the submodule as a library, you will obviously be puzzled: we usually don't use the library to find the directory where the header file of the care library is placed, because it is directly configured in the search path, then how to configure cmake. It’s very simple. Take the example above, you only need to add
+在把子模块作为库链接后，你很明显会疑惑：我们平时用库都不会去 care库的头文件放在哪个目录，因为直接配在了 search path里面，那么 cmake怎么配呢。很简单，以上面为例, 你只需要添加一行
 
 include_directories(hello)
-In this way, you can #include "hello.h" directly in main.c without having to care about the specific directory.
+这样你在 main.c 里面直接就可以 #include “hello.h”了，不用 care具体目录。
 
-# Compile parameters
-I don't want to mention much in this part, I just want to tell everyone that there is such a thing. For example, if you want to set the C++ Version to 11, then you can write:
+# 编译参数
+这一部分并不想提多少，只是想告诉大家有这么个东西存在。比如你想设置 C++ Version为 11，那么你可以这样写：
 
 ```cmake
 set(CMAKE_CXX_STANDARD 11)
 ```
 
-In fact, conceptually CMAKE_CXX_STANDARD is a built-in variable of cmake, and set is a function used to set the value of the variable. Similarly, you can also set cxx flags
+其实概念上 CMAKE_CXX_STANDARD 是 cmake的一个内置变量， set就是用于设置变量值的函数。同样地你也可以设置 cxx flags
 
 ```cmake
-set(CMAKE_CXX_FLAGS'-w')
+set(CMAKE_CXX_FLAGS '-w')
 ```
 
-For more other built-in variables or parameters, you can refer to the official CMake documentation. In fact, you can directly Google it when you need it.
+更多的其他内置变量或者参数你可以参考 CMake官方文档，其实有需要的时候就可以直接 Google一下。
 
  
 
-Understanding CMake is actually a very simple and effective means for reading C/C++ projects, which lays a foundation for understanding LLVM projects later.
+了解 CMake其实是用于阅读 C/C++项目的一种非常简单有效的手段，这为后面了解 LLVM项目打下一个基础。

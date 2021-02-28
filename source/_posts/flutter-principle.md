@@ -1,97 +1,97 @@
 ---
-title: Brief explanation of Flutter principle
+title: Flutter原理简解
 date: 2018-05-14 11:28:23
 tags:
 ---
 
 ![](/images/flutter.png)
-Flutter is a mobile application development framework launched and open sourced by Google, focusing on cross-platform, high fidelity, and high performance. Developers can develop apps through Dart language, and a set of codes runs on both iOS and Android platforms. Flutter provides a wealth of components and interfaces, and developers can quickly add native extensions to Flutter. At the same time, Flutter also uses the Native engine to render the view, which can undoubtedly provide users with a good experience.
-<!--more-->
+Flutter 是 Google推出并开源的移动应用开发框架，主打跨平台、高保真、高性能。开发者可以通过 Dart语言开发 App，一套代码同时运行在 iOS 和 Android平台。 Flutter提供了丰富的组件、接口，开发者可以很快地为 Flutter添加 native扩展。同时 Flutter还使用 Native引擎渲染视图，这无疑能为用户提供良好的体验。
+<!--more-->  
 
-Okay, the above official speech is finished, let's start to understand the implementation principle of Flutter.
+好了，上面的官腔打完了，我们下面开始去理解 Flutter的实现原理。  
 
-# Basic principles of drawing
-When it comes to principles, we have to start with the basic principles of screen display images.
-We all know that the display refreshes at a fixed frequency, such as 60Hz for iPhone and 120Hz for iPad Pro. When a frame of image is drawn and ready to draw the next frame, the monitor will send out a vertical synchronization signal (VSync), so a 60Hz screen will send out such a signal 60 times in one second.
-And generally speaking, in a computer system, the CPU, GPU, and display cooperate in a specific way: the CPU submits the calculated display content to the GPU, and the GPU puts it into the frame buffer after rendering, and then the video controller follows the VSync signal Fetch frame data from the frame buffer and pass it to the display for display.
-
-
-![Picture from ibireme.com](/images/screen_display.png)
+# 绘图基本原理
+提到原理，我们要从屏幕显示图像的基本原理开始谈起。  
+我们都知道显示器以固定的频率刷新，比如 iPhone的 60Hz、iPad Pro的 120Hz。当一帧图像绘制完毕后准备绘制下一帧时，显示器会发出一个垂直同步信号（VSync），所以 60Hz的屏幕就会一秒内发出 60次这样的信号。  
+并且一般地来说，计算机系统中，CPU、GPU和显示器以一种特定的方式协作：CPU将计算好的显示内容提交给 GPU，GPU渲染后放入帧缓冲区，然后视频控制器按照 VSync信号从帧缓冲区取帧数据传递给显示器显示。  
 
 
-> The picture above is from ibireme.com
+![图自 ibireme.com](/images/screen_display.png)
 
-Therefore, Android and iOS apps display UI in this way, and Flutter is no exception, and it also follows this pattern. So from this we can see the essential difference between Flutter and React-Native: React-Native and the like only extend and call OEM components, while Flutter renders itself.
-In the explanation of Flutter Architecture, Google also provides a more detailed diagram to explain the principle of Flutter:
 
-![](/images/flutter-vsync.png)
+> 上图来自 ibireme.com  
 
-This picture explains more clearly: Flutter only cares about providing view data to the GPU, the VSync signal of the GPU is synchronized to the UI thread, and the UI thread uses Dart to build an abstract view structure. This data structure is used for layer synthesis on the GPU thread. View data is provided to the Skia engine for rendering as GPU data, which is provided to the GPU through OpenGL or Vulkan.
+所以，Android、iOS的 App在显示 UI时是如此，Flutter也不例外，也遵循了这种模式。所以从这里可以看出 Flutter和 React-Native之众的本质区别：React-Native之类只是扩展调用 OEM组件，而 Flutter是自己渲染。  
+在 Flutter Architecture的解释中，Google还提供了一张更为详尽的图来解释 Flutter的原理：  
+
+![](/images/flutter-vsync.png)  
+
+这张图解释得更清晰一些：Flutter只关心向 GPU提供视图数据，GPU的 VSync信号同步到 UI线程，UI线程使用 Dart来构建抽象的视图结构，这份数据结构在 GPU线程进行图层合成，视图数据提供给 Skia引擎渲染为 GPU数据，这些数据通过 OpenGL或者 Vulkan提供给 GPU。   
    
-Therefore, Flutter does not care about the specific work of the display, video controller, and GPU. It only cares about the VSync signal sent by the GPU, calculates and synthesizes the view data between the two VSync signals as quickly as possible, and provides the data to the GPU.
+所以 Flutter并不关心显示器、视频控制器以及 GPU具体工作，它只关心 GPU发出的 VSync信号，尽可能快地在两个 VSync信号之间计算并合成视图数据，并且把数据提供给 GPU。  
 
-# a few questions  
-After understanding the basic concepts of Flutter, there are naturally several questions that need to be resolved.
+# 几个问题  
+了解 Flutter的基本概念后，自然有几个疑问亟待解决。  
 
-## 1. Why use Dart?
-This is a very interesting question. Flutter chose Dart instead of JavaScript. I think there are mainly the following reasons:
+## 1. 为什么使用 Dart？  
+这是一个很有意思的问题，Flutter选择了 Dart而不是 JavaScript。我觉得主要有以下几个原因：
 
-1. Dart has better performance. In the JIT mode, Dart has basically the same speed as JavaScript. But Dart supports AOT. When running in AOT mode, JavaScript is far behind. The speed increase is very helpful for view data calculation under high frame rate.
-2. Native Binding. On Android, v8's Native Binding can be implemented very well, but JavaScriptCore on iOS cannot, so if JavaScript is used, the code mode of the Flutter basic framework is difficult to unify. And Dart's Native Binding can be implemented through Dart Lib.
-3. Fuchsia OS, a reason that doesn't look like a cause. The built-in application browser of Fuchsia OS uses Dart language as the App development language. And in fact, Flutter is a conceptual subset of Fuchisa OS's application framework. (Flutter source code and compilation tool chain are also full of Fuchsia macros)
-4. Dart is a **type-safe** language, with complete package management and many features. Google has gathered so many design experts in the programming language community to develop such a language, which aims to replace JavaScript, so Fuchsia OS has Dart built in. Dart can be used as embedded lib to embed applications, instead of getting updates only with system upgrades, this is also one of the advantages.
+1. Dart 的性能更好。Dart在 JIT模式下，速度与 JavaScript基本持平。但是 Dart支持 AOT，当以 AOT模式运行时，JavaScript便远远追不上了。速度的提升对高帧率下的视图数据计算很有帮助。
+2. Native Binding。在 Android上，v8的 Native Binding可以很好地实现，但是 iOS上的 JavaScriptCore不可以，所以如果使用 JavaScript，Flutter 基础框架的代码模式就很难统一了。而 Dart的 Native Binding可以很好地通过 Dart Lib实现。  
+3. Fuchsia OS，看起来不像原因的一个原因。Fuchsia OS内置的应用浏览器就是使用 Dart语言作为 App的开发语言。而且实际上，Flutter是 Fuchisa OS的应用框架概念上的一个子集。（Flutter源代码和编译工具链也充斥了大量的 Fuchsia宏）
+4. Dart是**类型安全**的语言，拥有完善的包管理和诸多特性。Google召集了如此多个编程语言界的设计专家开发出这样一门语言，旨在取代 JavaScript，所以 Fuchsia OS内置了 Dart。Dart可以作为 embedded lib嵌入应用，而不用只能随着系统升级才能获得更新，这也是优势之一。
 
-## 2. What is Skia?
-As mentioned earlier, Flutter only cares about how to build the view abstract structure and provide view data to the GPU. Skia is the way Flutter provides data to the GPU.
+## 2. Skia是什么？
+前面提到了 Flutter只关心如何构建视图抽象结构，向 GPU提供视图数据。Skia就是 Flutter向 GPU提供数据的途径。  
 
-Skia is a 2D drawing engine library. Its predecessor is a vector drawing software. Both Chrome and Android use Skia as the drawing engine. Skia provides a very friendly API, and provides friendly and efficient performance in graphics conversion, text rendering, and bitmap rendering. Skia is cross-platform, so it can be embedded in Flutter's iOS SDK without having to study the iOS closed-source Core Graphics / Core Animation.
+Skia是一个 2D的绘图引擎库，其前身是一个向量绘图软件，Chrome和 Android均采用 Skia作为绘图引擎。Skia提供了非常友好的 API，并且在图形转换、文字渲染、位图渲染方面都提供了友好、高效的表现。Skia是跨平台的，所以可以被嵌入到 Flutter的 iOS SDK中，而不用去研究 iOS闭源的 Core Graphics / Core Animation。  
 
-> Android comes with Skia, so the Flutter Android SDK is much smaller than the iOS SDK.
+> Android自带了 Skia，所以 Flutter Android SDK要比 iOS SDK小很多。
 
-## 3. How is Flutter designed?
-Having said the basics for so long, we may only know what Flutter has done, but have not yet observed the entire architecture design of Flutter from the side, and understand how Flutter does it.
+## 3. Flutter是如何设计的？ 
+上面说了这么久的基础，我们可能只知道 Flutter做了什么，始终都还没有从侧面观察 Flutter的整个架构设计，了解 Flutter如何去做。  
 
-![](/images/flutter-framework.png)
+![](/images/flutter-framework.png)  
 
-People who know Flutter in this picture may have seen it in many places. Here is a detailed explanation:
+这张图了解过 Flutter的人可能很多地方都看过，这边来详细解释一下：  
 
-**Flutter Framework**: This is a pure Dart-implemented SDK, similar to the role of React in JavaScript. It implements a set of basic libraries for handling animation, drawing and gestures. It also encapsulates a set of UI component libraries based on drawing, and then distinguishes them according to the two visual styles of `Material` and `Cupertino`. This pure Dart SDK is packaged as a Dart library called `dart:ui`. When we use Flutter to write App, we can directly import this library to use components and other functions.
+**Flutter Framework**: 这是一个纯 Dart实现的 SDK，类似于 React在 JavaScript中的作用。它实现了一套基础库， 用于处理动画、绘图和手势。并且基于绘图封装了一套 UI组件库，然后根据 `Material` 和`Cupertino`两种视觉风格区分开来。这个纯 Dart实现的 SDK被封装为了一个叫作 `dart:ui`的 Dart库。我们在使用 Flutter写 App的时候，直接导入这个库即可使用组件等功能。
 
-**Flutter Engine**: This is a pure C++ SDK, which includes Skia engine, Dart runtime, text typesetting engine, etc. But to put it bluntly, it is a runtime of Dart, it can run Dart code in JIT, JIT Snapshot or AOT mode. When the code calls the `dart:ui` library, provide the Native Binding implementation in the `dart:ui` library. But don't forget, this runtime also controls the transmission of VSync signals, the filling of GPU data, etc., and is also responsible for passing client events to the code in the runtime. <br />
-** After understanding the basic principles of screen drawing and an overall concept of Flutter, let's take a detailed look at the approximate implementation of Flutter. **
+**Flutter Engine**: 这是一个纯 C++实现的 SDK，其中囊括了 Skia引擎、Dart运行时、文字排版引擎等。不过说白了，它就是 Dart的一个运行时，它可以以 JIT、JIT Snapshot 或者 AOT的模式运行 Dart代码。在代码调用 `dart:ui`库时，提供 `dart:ui`库中 Native Binding 实现。 不过别忘了，这个运行时还控制着 VSync信号的传递、GPU数据的填充等，并且还负责把客户端的事件传递到运行时中的代码。   <br />  
+** 在了解屏幕绘图的基本原理和 Flutter的一个整体概念后，我们下面详细地来看一下 Flutter的大概实现。**  
 
-> As my Android knowledge is not good, I only analyze the implementation on the iOS platform. Android can refer to this article to understand the code
+> 由于我 Android知识不咋样，所以仅分析 iOS平台上的实现。Android可以参考本文思路理解代码
 
 
-# Flutter application running
+# Flutter应用的运行  
 
-To understand the principle of Flutter, we start from the entry point and look at the Flutter code. Since the application frameworks are similar, the code of Flutter mentioned below refers to the code of Flutter Engine, not the code of Flutter Dart Framework.
+要理解 Flutter的原理，我们从 entry point开始看 Flutter的代码。由于应用框架大同小异，所以下文提及 `Flutter的代码`即指代 Flutter Engine的代码，而非 Flutter Dart Framework代码。  
 
-The following figure shows me briefly sorted out the execution sequence of the Flutter application after startup
-![](/images/flutter-project.png)
+下图是我简单整理了一下 Flutter应用启动后的执行顺序  
+![](/images/flutter-project.png) 
 
-After the application's View Controller is initialized, an abstraction of the Flutter project (hereinafter referred to as project) will be instantiated. The project initializes an abstract instance of the platform view, which is responsible for creating the Flutter runtime (hereinafter referred to as the engine).
+在应用的 View Controller 初始化后，会实例化一个 Flutter project的抽象（以下简称 project）。project会初始化一个 platform view的抽象实例，这个抽象实例会负责创建 Flutter 的运行时（以下简称 engine）。  
 
-When the View Controller is about to display, call project to find and combine Flutter's application resource bundles, and provide the resources to the engine.
-The engine will only create a Dart execution environment (lazy loading, hereinafter referred to as Dart Controller) when it really needs to execute the resource bundle, and then set some properties of the view window (this is necessary for the drawing engine).
-Then the Dart Controller in the engine will load the Dart code and execute it. During the execution, the native binding implementation of `dart:ui` will be called to provide data to the GPU.
+当 View Controller将要显示时，调用 project查找和组合 Flutter的应用资源 bundle，并且把资源提供给 engine。  
+engine在真正需要执行资源 bundle时才会创建 Dart执行的环境（懒加载，以下简称 Dart Controller），然后设置视图窗口的一些属性等东西（这是绘图引擎必需的）。  
+然后 engine中的 Dart Controller会加载 Dart代码并执行，执行的过程中会调用 `dart:ui`的 native binding实现向 GPU提供数据。
 
-# VSync signal synchronization
-To make the view dynamic, it is not enough to only be able to draw the view. You have to know when the hardware sends the VSync signal. By obtaining the VSync signal, calculating and providing data to the GPU to build a dynamic interface. However, the way to obtain the VSync signal of each platform is different. Let's discuss the implementation on iOS to get a glimpse of the leopard.
+# VSync信号的同步
+要让视图动态化，仅仅能实现视图绘制还不行，还得知道硬件何时发送了 VSync信号，通过获取 VSync信号，计算并给 GPU提供数据来构建动态化的界面。不过每个平台的 VSync信号的获取方式不太一样，我们这里讨论一下 iOS上的实现，以此管中窥豹。   
 
-> The source code is obtained in the build see [Appendix](#Appendix)
+> 源码获取于构建参见[附录](#附录)
 
-In the implementation of `flutter/shell/platform/darwin/ios/framework/source/FlutterView.mm`, you can see that the `SnapshotContentsSync` function is called in the CALayer delegate of UIView. This function will call back to the GPU thread, from the GPU thread Execute to obtain `LayerTree`, calculate and synthesize the bitmap, and then pass the bitmap information to the Skia engine, and the Skia engine passes the bitmap information to the GPU through the `CGContextRef`.
+在 `flutter/shell/platform/darwin/ios/framework/source/FlutterView.mm`实现里面可以看到，在 UIView的 CALayer delegate中调用了 `SnapshotContentsSync`函数，这个函数会回调到 GPU线程，从 GPU线程执行获取 `LayerTree`，计算并合成位图，然后把位图信息传递给 Skia引擎，Skia引擎通过 `CGContextRef`把位图信息传递给 GPU。  
 
-``ʻobjc
--(void)drawLayer:(CALayer*)layer inContext:(CGContextRef)context {
+```objc
+- (void)drawLayer:(CALayer*)layer inContext:(CGContextRef)context {
   SnapshotContentsSync(context, self);
 }
 
 ```
 
 ```C++
-// Call back to GPU thread calculation, and here a native version of Dart future is used to synchronously wait for the GPU thread execution result
+// 回调到 GPU线程计算，并且这里用了一个 Dart future的 native版来同步等待 GPU线程执行结果
 void SnapshotContentsSync(CGContextRef context, UIView* view) {
   auto gpu_thread = blink::Threads::Gpu();
 
@@ -107,14 +107,14 @@ void SnapshotContentsSync(CGContextRef context, UIView* view) {
   latch.Wait();
 }
 
-// The content of SnapshotContentsSync is too long, so I won’t repeat it, let’s take a brief look:
+// SnapshotContentsSync 内容太长不赘述，精简看一下：
 {
-  // Get LayerTree
+  // 获取 LayerTree
   flow::LayerTree* layer_tree = rasterizer->GetLastLayerTree();
   if (layer_tree == nullptr) {
     return;
   }
-  // Get the size of composable layer
+  // 获取可合成图层大小
   auto size = layer_tree->frame_size();
   if (size.isEmpty()) {
     return;
@@ -122,7 +122,7 @@ void SnapshotContentsSync(CGContextRef context, UIView* view) {
   SkCanvas canvas(bitmap);
 
   {
-    // Composite layer
+    // 合成图层
     flow::CompositorContext compositor_context(nullptr);
     auto frame = compositor_context.AcquireFrame(nullptr, &canvas, false /* instrumentation */);
     layer_tree->Raster(frame, false /* ignore raster cache. */);
@@ -131,121 +131,122 @@ void SnapshotContentsSync(CGContextRef context, UIView* view) {
   canvas.flush();
 
   // Draw the bitmap to the system provided snapshotting context.
-  // Pass the bitmap to the GPU buffer of the system using Skia
+  // 把位图使用 Skia传递给系统的 GPU缓冲区
   SkCGDrawBitmap(context, bitmap, 0, 0);
 }
 ```
 
-However, one thing that is not sure is that in the iOS Architecture, there is no clear mention that CALayerDelegate is synchronized with Vsync. But what is certain is that CALayerDelegate is concurrent and multithreaded, which can be reflected in CATiled Layer, and the data of CALayer Delegate is indeed submitted to the GPU buffer to display the screen image.
+不过有一点不太确定的是，iOS的 Architecture中，并没有地方明确地提到 CALayerDelegate是与 Vsync同步的。不过可以确定的是，CALayerDelegate是并发多线程的，这个在 CATiled Layer那里可以得到体现，而 CALayer Delegate的数据确实提交给了 GPU缓冲区实现了屏幕图像的显示。
 
 
-# Flutter Engine composition
-Let's review this picture now (I swear I am not trying to make up the content):
+# Flutter Engine的组成 
+我们现在再来回顾一下这张图（我发誓我不是为了凑内容）：
 
-![](/images/flutter-vsync.png)
+![](/images/flutter-vsync.png) 
 
-We found the VSync source, and found the place where Skia submits the data to the GPU. Both of these are black boxes for us, so we don't care. And UI Thread's Dart is temporarily out of the scope of the current engine discussion. So what we want to analyze now is all the components that provide capabilities to the UI layer.
+我们找到了 VSync源，找到了 Skia把数据提交给 GPU的地方，这两处对我们来说都是黑盒，所以就先不管了。而 UI Thread的 Dart，暂时不在目前的 engine讨论范畴内。所以我们现在要分析的是给 UI 层提供能力的所有组件。  
 
-In my understanding, the entire Flutter Engine can be roughly divided into three parts: Dart UI, Runtime, and Shell, let's come together.
+在我的理解中，整个 Flutter Engine可以粗略地划分为三个部分：Dart UI、Runtime、Shell，我们一一道来。
 
 ## 1. Dart UI
-Dart UI is a Native Binding of the `dart:ui` library implemented in C++, and UI Lib is also the main entry point for Dart GUI applications.
-Dart UI provides general drawing capabilities such as `window`, `text`, `canvas`, and `geometry` to the upper layer. When Runtime calls Dart UI, Dart UI executes according to the passed main entrypoint and renders images to window.
-It is worth mentioning that Dart UI also provides the upper layer with the drawing ability of `compsiting`, which is actually an encapsulation of Skia's Scene. When the upper layer calls `compsiting`, it will actually generate or mount nodes to LayerTree. Then Skia is assisted in Scene synthesis bitmap through the data structure of LayerTree.
+Dart UI是一个 C++实现的 `dart:ui`库的 Native Binding，并且 UI Lib也是 Dart GUI程序的应用主要入口。  
+Dart UI向上层提供了 `window`、`text`、`canvas`、`geometry`等通用的绘图能力， Runtime在调用 Dart UI时，Dart UI根据传递的 main entrypoint 来执行并且向 window渲染图像。  
+值得一提的是，Dart UI还向上层提供了 `compsiting`的绘图能力，这其实就是一个 Skia的 Scene的封装，上层在调用 `compsiting`时其实就会生成或挂载节点到 LayerTree上。然后通过 LayerTree的数据结构辅助 Skia进行 Scene合成位图。  
 
-> LayerTree is the layer abstract class in the flow library. flow is a general drawing data structure abstract library in the chrome project, which can be adapted to other drawing engines.
+> LayerTree是 flow库中的图层抽象类。flow 是 chrome项目中通用的绘图数据结构抽象库，可以适配到其他绘图引擎上。
 
-## 2. Runtime
-The Runtime of Flutter Engine can be said to be more complicated. It is not that there are too many codes, but it uses a lot of Delegate mode, and the platform-related code is partly implemented by the Shell.
+## 2. Runtime 
+Flutter Engine的 Runtime可谓比较复杂，并不是代码多，而是使用了非常多的 Delegate模式，将平台相关的代码交由 Shell部分实现。  
 
-Runtime is responsible for creating the Dart runtime, and the environment for running in different development stages is different. During the development period, the Dart Snapshot VM was kept in check mode, and the production environment was Dart AOT Runtime.
+Runtime负责创建 Dart的运行时，并且在不同的开发阶段运行的环境也不一样。开发时期是保留 check mode的 Dart Snapshot VM，而生产环境是 Dart AOT Runtime。  
 
-> Dart Snapshot VM and Dart JIT VM are fundamentally different. Dart Snapshot refers to tokenized Dart scripts, not human readable. The JIT VM runs the source code directly in script mode. Obviously Snapshot VM is slightly faster than JIT VM.
+> Dart Snapshot VM 和 Dart JIT VM有着本质的区别。Dart Snapshot是指 token化的 Dart脚本，并非 human readable的。而 JIT VM 是直接以 script方式运行源代码。很明显 Snapshot VM要比 JIT VM稍微快一些。
 
 ![](/images/flutter-runtime.png)
 
-In the above figure, the red box part is the logic executed in the Runtime part. The engine abstraction is in the Shell layer, and ui_dart_state is in the Dart UI layer.
-We can see that Runtime will be called by the Shell layer to generate a runtime controller instance. This instance manages the properties of the current drawing window `window`, a Dart VM instance, and a delegate, which can connect the Shell layer and the Dart UI Layer communication, and is responsible for the delivery of events.
+上图，红框部分是在 Runtime部分执行的逻辑。engine的抽象处于 Shell层，而 ui_dart_state处于 Dart UI 层。  
+我们可以看到 Runtime会由 Shell层调用生成一个 runtime controller 实例，这个实例管理着当前的绘图窗口`window`的属性，一个 Dart的VM 的实例，以及一个 delegate，这个 delegate能打通 Shell层和 Dart UI层的通信，并且负责事件的传递。
 
 ## 3. Shell
-The Shell mentioned here is actually a "shell". This shell is a combination of Runtime, third-party tool libraries, platform features, etc., to implement the logic of calling and executing Flutter applications.
+这里说的 Shell其实就是 “壳”，这个壳就是组合 Runtime、第三方工具库、平台特性等，实现调用和执行 Flutter应用的逻辑。   
 
-1. Shell encapsulates an engine abstraction. This abstraction can call Runtime and implement the Delegate in Runtime to provide data and callbacks to Runtime.
-2. Shell also encapsulates the abstraction of platform view, and specifically implements platform view. The performance in iOS specific code is to follow the Delegate method and provide the management of UIView instances.
-3. Shell provides encapsulation of some basic tools, such as Future, which can implement the same execution logic of Future in `dart:io`, and is also responsible for processing VSync signals, UI, and GPU Thread callbacks.
-4. Shell provides a package for obtaining LayerTree from the engine and calling rendering methods.
+1. Shell 封装了一个 engine的抽象，这个抽象能够调用 Runtime，实现 Runtime中的 Delegate，以此向 Runtime提供数据和回调。  
+2. Shell 还封装了 platform view的抽象，并且具体地实现了 platform view，在 iOS特定代码中的表现就是遵循 Delegate方法并提供了 UIView实例的管理。
+3. Shell 提供了一些基础工具的封装，如 Future，可以实现 `dart:io`中的 Future相同的执行逻辑，并且还负责了处理 VSync信号，UI、GPU Thread的回调。
+4. Shell 提供了从 engine获取 LayerTree的和调用渲染方法的封装。
 
 <br />
 
-In general, Dart UI provides Dart with the ability to call Native drawing, Runtime provides Flutter with the ability to call Dart and Dart UI, and Shell is the master. Shell combines them and generates data from them. Realize rendering.
+总的来说，Dart UI给 Dart提供了调用 Native绘图的能力，Runtime为 Flutter提供了调用 Dart和 Dart UI的能力，而 Shell才是集大成者，Shell将他们组合起来，并且从他们生成的数据中实现渲染。
 
 ![](/images/flutter-engine-design.png)
 
-# Several questions Again
-Due to the huge amount of code, File by File is also a very large job, not to mention Line by Line, so I won't repeat it after understanding the principle. Focus on answering a few questions:
+# 几个问题 Again  
+由于代码量庞大，不说 Line by Line， File by File也是一项非常庞大的工作，所以大致了解原理后不再赘述。着重解答几个问题：
 
-## 1. Can Flutter be dynamically updated?
-The original version does not work. The theory is feasible. Dynamic distribution means that Dart source code needs to be run in JIT or JIT Snapshot mode, and Flutter's production build is AOT code, so the original version does not work. But Flutter's debug build is run by JIT Snapshot and can be updated dynamically.
-So, how to do both production build and JIT Snapshot execution? You can set mode = release and AOT = false in the build option of Flutter Engine SDK, then the typed Engine SDK will not include Dart AOT Runtime. And you need to pay attention to the compilation method of Flutter CLI TOOL, you need to compile the final production code in Snapshot mode.
-It is worth mentioning that the execution performance of JIT Snapshot method may be slightly worse, and 60fps may not be reached.
+## 1. Flutter能动态更新吗？  
+原版不行。理论可行。动态下发意味着 Dart源代码需要以 JIT或 JIT Snapshot的方式运行，而 Flutter的 production build是 AOT代码，所以原版不行。但 Flutter的 debug build是 JIT Snapshot运行，可以动态更新。  
+那么，既要 production build，又要 JIT Snapshot执行，该如何做呢？ Flutter Engine SDK的 build option里面可以设置 mode = release， AOT = false，那么 打出来的 Engine SDK不会包含 Dart AOT Runtime。 并且需要注意 Flutter CLI TOOL的编译方式，需要以 Snapshot方式编译最终的 production代码。  
+值得一提的是，JIT Snapshot方式执行性能可能稍差，60fps可能会达不到。  
 
-## 2. Why is the Flutter SDK very large?
-The volume of Flutter application consists of two parts: application code and SDK code. The application code is the code compiled by Dart. If it is made to be dynamically distributed, then this part can be ignored.
-The SDK code is relatively large, it is a bit helpless. The components of the SDK include Dart VM, Dart standard library, libwebp, libpng, libboringssl and other third-party libraries, libskia, Dart UI library, and then add icu_data. It may be under single arch (iOS ), the SDK volume reaches 40+MB. Among them, only Dart VM (not including the standard library) reached 7MB.
-Flutter SDK is a dynamic framework. Such a large binary volume may cause dynamic linking to take a long time. And if it is statically linked, the larger App may cause the TEXT segment to exceed the standard.
+## 2. Flutter SDK体积为什么非常大？  
+Flutter应用的体积由两部分组成：应用代码和 SDK代码。应用代码是 Dart编译后的代码，如果做成可动态下发，那么这部分可以不计。  
+SDK代码比较大就有点无奈了，SDK的组成部分有 Dart VM，Dart标准库，libwebp、libpng、libboringssl等第三方库，libskia，Dart UI库，然后再加上 icu_data，可能在单 arch下（iOS），SDK体积达到 40+MB。其中仅仅 Dart VM（不包含标准库）就达到了 7MB。  
+Flutter SDK是 dynamic framework，如此大的二进制体积可能会造成动态链接耗时长。而如果静态链接，可能原来比较大的 App很有可能造成 TEXT段超标。  
 
-## 3. Can Flutter run multiple instances?
-In theory it is possible. Although the Shell layer of the Flutter Engine is hard-coded, it will only run a Flutter View (only a Runtime), but this can be changed, and only a few logic changes are required. The only thing to worry about is the memory consumption of multiple instances.
+## 3. Flutter可以跑多个实例吗？  
+理论上是可以的。虽然 Flutter Engine的 Shell层写死了只会跑一个 Flutter View（只会跑一个 Runtime），但这是可以改变的，而且只需要少量的逻辑改动。唯一需要担心的就是多个实例的内存消耗。  
 
-## 4. Is it possible to remove the features of Flutter and only embed Dart in the application?
-feasible. Dart is undoubtedly an excellent programming language, and I have tried to separate Dart as a universal SDK. The Dart SDK is hosted in the chromium project and provides the option of cross building. The original version provides the Android Build script. However, the original version does not work on iOS, and it is guessed that it is mainly a problem with the standard library. In the Flutter iOS project, the Dart standard library provides a completely different implementation. Moreover, it is too difficult to separate the Dart VM and standard library from Flutter. And under a single arch, the volume of Dart VM plus standard library is> 10MB.
+## 4. 去掉 Flutter的特性，只嵌入 Dart到应用中，可能吗？  
+可行。Dart毫无疑问是一门优秀的编程语言，我也曾尝试将 Dart独立出来作为一个通用的 SDK。Dart SDK托管在 chromium项目中，并且提供了 cross building的选项。原版即提供了 Android Build脚本。但在 iOS上原版行不通，猜测主要是标准库的问题。在 Flutter iOS项目中，Dart 标准库提供了一份完全不同的实现。而且，想要把 Dart VM和标准库从 Flutter剥离出来，太困难了。并且单个 arch下，Dart VM加标准库的体积是 > 10MB的。
 
 
 # The End
-The brief explanation of Flutter principle in this issue is here. In fact, it is mainly to talk about the implementation of Flutter Engine. As for Flutter's UI Framework, please wait a few days for another article. 😜
+本期 Flutter原理的简解就到这儿，其实主要是高谈阔论了一番 Flutter Engine的实现。至于 Flutter的 UI Framework，稍候几天再水一篇吧。😜
 
-# Appendix
-**Build Flutter Engine (for iOS)**
-1. Fork the ʻengine` project
-2. Setting up the development environment
+
+# 附录
+**构建 Flutter Engine （for iOS)**  
+1. fork `engine` 项目
+2. 设置开发环境
     * Mac (Xcode 9.0)
     * Python >= 2.7.10
-    * Install depot_tools (Google Toolchain)
+    * 安装 depot_tools (Google工具链)  
         
         ```
         git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
         ```
-        Modify .bashrc (zsh modify .zshrc), add depot_tools to the environment variable
+        修改 .bashrc (zsh 修改 .zshrc)，把 depot_tools添加到环境变量中  
         
         ```
-        export PATH=$PATH:<Replace the directory path here with your address>/depot_tools
+        export PATH=$PATH:<替换这里的目录路径为你的地址>/depot_tools
         ```
-        After the above operations are completed, restart the command line client to make the settings take effect
-    * Make sure your command line has tool commands `curl` and `wget`
-    * If you are using a Mac, make sure to install `brew install ant`
+        上述操作完成后重启命令行客户端使设置生效
+    * 确认你的命令行有工具命令 `curl` 和 `wget`
+    * 如果使用了 Mac，确认安装 `brew install ant`
 
-3. Pull your engine project locally, the storage directory is called engine
-4. Create a file `.gclient` in the engine directory, and fill in the content as follows:
+3. 把你的 engine项目拉到本地，存放目录就叫做 engine
+4. 在 engine 目录中创建文件 `.gclient`, 填写内容如下：
     ```
     solutions = [
         {
             "managed": False,
             "name": "src/flutter",
-            "url": "git@github.com:<here to replace your github ID>/engine.git",
+            "url": "git@github.com:<这里换成你的 github ID>/engine.git",
             "custom_deps": {},
             "deps_file": "DEPS",
             "safesync_url": "",
         },
     ]
     ```
-5. Execute the command `gclient sync` in the ʻengine` directory, this operation requires a command line network proxy, it is recommended to use ShadowSocksX-NG
-6. After step 5 is completed, there will be an additional src directory under the engine directory, this directory is where the code is actually written and compiled. In this directory, add the git upstream source:
+5. 在 `engine`目录下执行命令 `gclient sync`, 此操作需要命令行网络代理 ，推荐使用 ShadowSocksX-NG
+6. 在步骤5完成后，engine目录下会多出一个 src目录，这个目录是真正写代码、编译的地方。这个目录下，添加 git upstream 源：
     ```
     git remote add upstream https://github.com/flutter/engine.git
     ```
-    Before proceeding to the next step, make sure that the code is up to date, perform fetch -> pull rebase upstream master
+    在进行下一步前，确保代码是最新，进行 fetch -> pull rebase upstream master
 
-7. Under the src directory, execute the command: `./flutter/tools/gn --ios --simulator --unoptimized` to generate the compiled file
-8. In the src directory, execute the compilation command: `ninja -C out/ios_debug_sim_unopt`
-9. After the compilation is complete, you can find the `Flutter.framework` file in the ʻout/ios_debug_sim_unopt` directory, and you can integrate it into the iOS project
-10. Open ʻall.xcworkspace` to view the Flutter source code
+7. 在 src目录下面，执行命令：`./flutter/tools/gn --ios --simulator --unoptimized` 生成编译文件
+8. 在 src目录下，执行编译命令：`ninja -C out/ios_debug_sim_unopt`
+9. 编译完成后可以在 `out/ios_debug_sim_unopt`目录下找到 `Flutter.framework`文件，即可集成进 iOS工程
+10. 打开 `all.xcworkspace`即可查看 Flutter源码

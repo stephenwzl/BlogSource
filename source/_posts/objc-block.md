@@ -1,12 +1,12 @@
 ---
-title: block of objc
+title: objc的 block
 date: 2017-06-11 17:21:29
 tags:
 ---
-Without knowing the true face of Block, it can be said that the daily processing of Block-related logic can be said to be cautious and walking on thin ice. After a while of confusion and madness, I dug into the Clang document's [explanation] of Block implementation (https://clang.llvm.org/docs/Block-ABI-Apple.html). Although it is not 100% complete compared to the current Block implementation, it can still be seen.
+在没有认清 Block的真实面目前，日常处理 Block相关的逻辑时可以说是战战兢兢、如履薄冰。在经过一阵迷茫和抓狂后，挖到了 Clang文档对于 Block实现的[解释](https://clang.llvm.org/docs/Block-ABI-Apple.html)。虽然相对于当前的 Block实现不是100%完整，但也可以管中窥豹了。
 <!-- more -->
 
-From the ABI level, Block is composed of a specific memory layout (aka layout) and runtime methods. Let's first look at the structure description of the document:
+从 ABI层面看，Block由一个特定的内存布局（aka layout）和运行时方法组成，先看一下文档的结构描述：
 
 ```c
 struct Block_literal_1 {
@@ -15,119 +15,73 @@ struct Block_literal_1 {
     int reserved;
     void (*invoke)(void *, ...);
     struct Block_descriptor_1 {
-    unsigned long int reserved; // NULL
-        unsigned long int size; // sizeof(struct Block_literal_1)
+    unsigned long int reserved;         // NULL
+        unsigned long int size;         // sizeof(struct Block_literal_1)
         // optional helper functions
-        void (*copy_helper)(void *dst, void *src); // IFF (1<<25)
-        void (*dispose_helper)(void *src); // IFF (1<<25)
+        void (*copy_helper)(void *dst, void *src);     // IFF (1<<25)
+        void (*dispose_helper)(void *src);             // IFF (1<<25)
         // required ABI.2010.3.16
-        const char *signature; // IFF (1<<30)
+        const char *signature;                         // IFF (1<<30)
     } *descriptor;
     // imported variables
 };
 ```
 
-From the first element of this structure, I saw a familiar variable name "isa", which is similar to the isa pointer of the objc class, indicating the type of Block. From the comments, it can be known that the isa pointer of the Block may point to \_NSConcreteStackBlock or \_NSConcreteGlobalBlock when it is initialized. This indicates that the memory type of the block when it is first created may be on the stack or global.
+从这个结构体的第一个元素，我看到了一个熟悉的变量名 “isa”，和 objc class的 isa指针作用类似，表明了 Block的类型。从注释可以得知 Block的 isa指针初始化的时候可能指向的是 \_NSConcreteStackBlock 或 \_NSConcreteGlobalBlock，这表示 Block在刚创建的时候的内存类型，可能是 栈上的，也可能是全局的。
 
-However, there are other types that are not mentioned in the Clang document. From the source code of the latest [libclosure](https://opensource.apple.com/tarballs/libclosure/), you can know that there are actually the following types of Block Species:
+不过，Clang文档没有提到的其他的类型，从最新的 [libclosure](https://opensource.apple.com/tarballs/libclosure/)的源代码 可以得知，其实 Block的类型是有下面这几种的：
 
 ```c
-void * _NSConcreteStackBlock[32] = {0 };
-void * _NSConcreteMallocBlock[32] = {0 };
-void * _NSConcreteAutoBlock[32] = {0 };
-void * _NSConcreteFinalizingBlock[32] = {0 };
-void * _NSConcreteGlobalBlock[32] = {0 };
-void * _NSConcreteWeakBlockVariable[32] = {0 };
+void * _NSConcreteStackBlock[32] = { 0 };
+void * _NSConcreteMallocBlock[32] = { 0 };
+void * _NSConcreteAutoBlock[32] = { 0 };
+void * _NSConcreteFinalizingBlock[32] = { 0 };
+void * _NSConcreteGlobalBlock[32] = { 0 };
+void * _NSConcreteWeakBlockVariable[32] = { 0 };
 ```
-Block's isa will eventually point to the first address of one of their pointer arrays. In this way, comparing Block types is to compare different pointers, which is more convenient.
+Block 的 isa最终会指向他们其中一个指针数组的首地址，这样一来，比较 Block的类型就是比较不同的指针，会比较方便一点。
 
-But our common ones are \_NSConcreteStackBlock, \_NSConcreteGlobalBlock, \_NSConcreteMallocBlock, we can understand Block as a normal variable, because the variables we use are either on the stack, global, or on the heap. As for the other three types, that is something that GC needs to care about. It has nothing to do with us for the time being. Let it go.
+不过我们常见的是 \_NSConcreteStackBlock，\_NSConcreteGlobalBlock, \_NSConcreteMallocBlock, 把 Block想象成普通的变量我们就可以理解了，因为我们所用的变量要么是 栈上的，要么是全局的，要么就是堆上的。至于其他三种类型，那是 GC所需要关心的事，暂时和我们无关，先放一边。
 
-Looking at the second element flag in the Block structure, it is obvious that the libclosure gods have set up a flag here so that they can know some specific information at runtime after the block is generated. The following definition can be seen from the runtime source code (this runtime is runtime of libclosure)
+再看看 Block 结构里的第二个元素 flag，很明显 libclosure的大神们在这里立了一个 flag，以便生成 Block后在运行时知道一些具体的信息，从 runtime源码看到了如下定义（此 runtime为 libclosure的 runtime）
 
 ```c
 enum {
-    BLOCK_DEALLOCATING = (0x0001), // runtime
-    BLOCK_REFCOUNT_MASK = (0xfffe), // runtime
-    BLOCK_NEEDS_FREE = (1 << 24), // runtime
-    BLOCK_HAS_COPY_DISPOSE = (1 << 25), // compiler
-    BLOCK_HAS_CTOR = (1 << 26), // compiler: helpers have C++ code
-    BLOCK_IS_GC = (1 << 27), // runtime
-    BLOCK_IS_GLOBAL = (1 << 28), // compiler
-    BLOCK_USE_STRET = (1 << 29), // compiler: undefined if !BLOCK_HAS_SIGNATURE
-    BLOCK_HAS_SIGNATURE = (1 << 30), // compiler
-    BLOCK_HAS_EXTENDED_LAYOUT=(1 << 31) // compiler
+    BLOCK_DEALLOCATING =      (0x0001),  // runtime
+    BLOCK_REFCOUNT_MASK =     (0xfffe),  // runtime
+    BLOCK_NEEDS_FREE =        (1 << 24), // runtime
+    BLOCK_HAS_COPY_DISPOSE =  (1 << 25), // compiler
+    BLOCK_HAS_CTOR =          (1 << 26), // compiler: helpers have C++ code
+    BLOCK_IS_GC =             (1 << 27), // runtime
+    BLOCK_IS_GLOBAL =         (1 << 28), // compiler
+    BLOCK_USE_STRET =         (1 << 29), // compiler: undefined if !BLOCK_HAS_SIGNATURE
+    BLOCK_HAS_SIGNATURE  =    (1 << 30), // compiler
+    BLOCK_HAS_EXTENDED_LAYOUT=(1 << 31)  // compiler
 };
 ```
 
-From the comments of these enums, we can know that some are used at runtime, and some are generated at compile time. Before discussing how the Block works (or discussing the function operation of the programming language), we will not look at these operations. Time to choose. Then it is obvious that this flag will mark whether the Block is Global, whether Copy and Dispose are required, whether the call with return value (STRET), whether there is a function signature (SIGNATURE), and whether there is some additional "layout" (EXTENDED_LAYOUT) , Such as the incoming parameters, this will be discussed later.
+从这些 enum的注释可以得知，一些是运行时用的，还有一些是编译时期就会产生的，在讨论 Block如何运行（或者说讨论编程语言的函数运行）之前，就先不看这些运行时选项了。那么很明显看到这个 flag会标记 Block是否 Global的，是否需要 Copy和 Dispose，是否带返回值的调用（STRET），是否有函数签名（SIGNATURE），以及是否有一些额外的“布局”（EXTENDED_LAYOUT），比如说传入的参数，这个稍后讨论。
 
-"First set up a flag in this article, and then I will open a special article to describe the operation of the function"
+“先在本文中立个 flag，以后要专门开一篇文章来描述函数的运行”
 
-However, it is also mentioned in the document that some of the values ​​in the enum of the Block flag mentioned above are actually left over from history and are a bit redundant, but they cannot be deleted because the ABI of the C language has been stable for several years. For example, BLOCK_USE_STRET and BLOCK_HAS_SIGNATURE always appear in pairs, and most of the time when making a call, all the caller needs to know is a function signature. As for the return value, it is easy to obtain from the standard Call Interface. The type is in the function signature or even The caller himself is very clear.
+不过文档里还提到，关于上文中这个 Block flag的 enum中的一些值其实是历史遗留的，有点冗余的意味，但又不能删，因为 C语言的 ABI已经稳定若干年了。比如 BLOCK_USE_STRET 和 BLOCK_HAS_SIGNATURE总是成对出现的，而大部分时候进行调用的时候，调用者需要知道的只是一个函数签名，至于返回值，从标准的 Call Interface很容易就能获得，类型在函数签名甚至调用者自己也是十分清楚的。
 
-Having said that, I think it is necessary to describe the role of function signatures. When the process is started, that is, when the main function is executed, it is obvious that there are parameters passed in, but the parameters are of variable length. In the same way, the parameter passing of the function call in the process is essentially of variable length. The caller only knows the function signature of the target function to determine how many parameters to pass and what each parameter type is. So this also explains why the Global type of Block has no method signature. Because it has no parameters and no return value (or the return value is void), the caller only needs to know the first address of the function execution. Suddenly mentioned this Global type of Block, we will slowly look at the specific implementation of Block later.
+说到这儿，我想有必要描述一下函数签名的作用。当进程被启动时，也就是 main函数执行时显而易见是有参数传进来的，但参数是不定长的。同样的道理，进程内的函数调用本质上的参数传递也是不定长的，调用者只有知道目标函数的函数签名，才能确定传多少参数，每个参数类型是什么。所以这同样解释了 Global类型的 Block为啥没有方法签名。因为它无参数，无返回值（或者说返回值是 void），调用者只需要知道函数执行的首地址就可以了。突然提到这个 Global类型的 Block，我们稍后再慢慢来看一下 Block的具体实现。
 
+先继续 flag后面的变量，叫 reserved, 很显然这是一个保留字，用作什么也不清楚，不过从编译期的传值来看，都是0，并没有实际用它的地方，也没有注释说将来可能会用作什么，所以在遇到保留字的时候，跳过阅读就好了。不过我的猜想是 flag字段是通过左移右移计算的，所以很可能是怕内存溢出影响到实际的函数指针指向，那样就会影响 Block的实际执行，麻烦就大了。
 
-Xiān jìxù flag hòumiàn de biànliàng, jiào reserved, hěn xiǎnrán zhè shì yīgè bǎoliú zì, yòng zuò shénme yě bù qīngchǔ, bùguò cóng biānyì qí de chuán zhí lái kàn, dōu shì 0, bìng méiyǒu shíjì yòng tā dì dìfāng, yě méiyǒu zhùshì shuō jiānglái kěnéng huì yòng zuò shénme, suǒyǐ zài yù dào bǎoliú zì de shíhòu, tiàoguò yuèdú jiù hǎole. Bùguò wǒ de cāixiǎng shì flag zìduàn shì tōngguò zuǒ yí yòu yí jìsuàn de, suǒyǐ hěn kěnéng shì pà nèicún yìchū yǐngxiǎng dào shíjì de hánshù zhǐzhēn zhǐxiàng, nàyàng jiù huì yǐngxiǎng Block de shíjì zhíxíng, máfan jiù dàle.
+我们接着看后一个字段 invoke，顾名思义即实际的函数指针，这没什么好说的。再接下来一段结构体把一些关于这个 Block的一些描述或者其他用得到的 “context”给记录下来。开头便是一个保留字，然后是 Block的 size，接下来是有可能出现的两个函数指针，copy 和 dispose，帮助管理 Block变量的引用计数，他们俩仅有可能在 flag出现 BLOCK_HAS_COPY_DISPOSE 即 (flag & 1<<25) 时会存在。然后是 Block的方法签名，也仅当 BLOCK_HAS_SIGNATURE时才会存在。最后一行注释告诉我们，那块内存会存在一些捕获的变量。
 
-Wǒmen jiēzhe kàn hòu yīgè zìduàn invoke, gùmíngsīyì jí shíjì de hánshù zhǐzhēn, zhè méishénme hǎoshuō de. Zài jiē xiàlái yīduàn jiégòu tǐ bǎ yīxiē guānyú zhège Block de yīxiē miáoshù huòzhě qítā yòng dédào de “context” gěi jìlù xiàlái. Kāitóu biàn shì yīgè bǎoliú zì, ránhòu shì Block de size, jiē xiàlái shì yǒu kěnéng chūxiàn de liǎng gè hánshù zhǐzhēn,copy hé dispose, bāngzhù guǎnlǐ Block biànliàng de yǐnyòng jìshù, tāmen liǎ jǐn yǒu kěnéng zài flag chūxiàn BLOCK_HAS_COPY_DISPOSE jí (flag& 1<<25) shí huì cúnzài. Ránhòu shì Block de fāngfǎ qiānmíng, yě jǐn dāng BLOCK_HAS_SIGNATURE shí cái huì cúnzài. Zuìhòu yīxíng zhùshì gàosù wǒmen, nà kuài nèicún huì cúnzài yīxiē bǔhuò de biànliàng.
-
-Gāngcái zhè duàn qíshí cóng zìmiàn shàng kàn huì ràng rén hú li hútú, hǎo zài Clang wéndàng gěi wǒmen tígōngle yīgè lìzi, guānyú zài 32 wèi xìtǒng xià gǎixiě objc wèi C++de yīgè shíxiàn, tóngyàng de, wǒmen zìjǐ yě kěyǐ shǐyòng Clang gōngjù gǎixiě, jùtǐ de mìnglìng shì:
-
-```
-Clang --rewrite-objc [input_file]
-```
-wǒ zhè biān zhíjiē ná guānfāng wéndàng de lìzi, bǐjiào qīngxī yīxiē:
-
-```C
-//before rewrite
-^ {printf("hello world\n"); }
-
-//after rewrite
-struct __block_literal_1 {
-    void*isa;
-    int flags;
-    int reserved;
-    void (*invoke)(struct __block_literal_1*);
-    struct __block_descriptor_1*descriptor;
-};
-//zhùshì 1
-void __block_invoke_1(struct __block_literal_1*_block) {
-    printf("hello world\n");
-}
-
-static struct __block_descriptor_1 {
-    unsigned long int reserved;
-    unsigned long int Block_size;
-} __block_descriptor_1 = {0, sizeof(struct __block_literal_1), __block_invoke_1};
-
-//zhùshì 2
-struct __block_literal_1 _block_literal = {
-     &_NSConcreteStackBlock,
-     (1<<29), <uninitialized>,
-     __block_invoke_1,
-     &__block_descriptor_1
-};
-```
-
-zǐxì kàn zhè yīduàn chóng xiě hòu de dàimǎ, chóng xiě qián de Block méiyǒu fǎnhuí zhí, méiyǒu chuán cān, ránhòu Block de shíjì zhíxíng tǐ bèi chóng xiěchéngle yīgè C hánshù, chuán cān wèi Block de jiégòu zìshēn (xiáng jiàn zhùshì 1). Ránhòu shíjì de Block biànliàng bèi shēngmíng wèi _NSConcreteStackBlock,flag shèzhì wèi 1<<29,invoke zhǐzhēn zhǐxiàngle zhíxíng hánshù,descriptor zhǐzhēn zhǐxiàngle qián yībù shēngchéng de jiégòu tǐ.(1<<29 Flag zài yùnxíng shí tōngcháng bèi hūlüè, suǒyǐ zhèyàng fùzhí bìng méiyǒu shé me tèshū yìyì, bìmiǎn uninitialized zhèyàng shèzhì flag yě kěyǐ lǐjiě).
-展开
-1591/5000
-First continue with the variable behind the flag, called reserved. Obviously this is a reserved word and it is not clear what it is used for, but from the value passed at compile time, it is all 0. There is no place to actually use it, and there is no comment. Say what you might use in the future, so when you encounter reserved words, just skip reading. But my guess is that the flag field is calculated by shifting left and right, so it is likely that the memory overflow will affect the actual function pointer, which will affect the actual execution of the block, and the trouble will be big.
-
-Let's look at the latter field, invoke, which is the actual function pointer as the name suggests. There is nothing to say about this. The next section of the structure records some descriptions of this Block or other "context" that are used. At the beginning is a reserved word, then the size of Block, and then there are two function pointers that may appear, copy and dispose, to help manage the reference count of the Block variable. The two of them only have the possibility of appearing BLOCK_HAS_COPY_DISPOSE in the flag (flag & 1<<25) will exist. Then there is the method signature of Block, which only exists when BLOCK_HAS_SIGNATURE. The last line of comments tells us that there will be some captured variables in that memory.
-
-The paragraph just now is actually confusing literally. Fortunately, the Clang document provides us with an example about rewriting objc as an implementation of C++ under a 32-bit system. Similarly, we can also use Clang tools ourselves. Rewrite, the specific command is:
+刚才这段其实从字面上看会让人糊里糊涂，好在 Clang文档给我们提供了一个例子，关于在 32位系统下改写 objc为 C++的一个实现，同样地，我们自己也可以使用 Clang工具改写，具体的命令是：
 
 ```
 clang --rewrite-objc [input_file]
 ```
-Let me take the official document example directly, which is clearer:
+我这边直接拿官方文档的例子，比较清晰一些：
 
 ```c
 //before rewrite
-^ {printf("hello world\n");}
+^ { printf("hello world\n"); }
 
 //after rewrite
 struct __block_literal_1 {
@@ -137,7 +91,7 @@ struct __block_literal_1 {
     void (*invoke)(struct __block_literal_1 *);
     struct __block_descriptor_1 *descriptor;
 };
-//Comment 1
+//注释 1
 void __block_invoke_1(struct __block_literal_1 *_block) {
     printf("hello world\n");
 }
@@ -145,9 +99,9 @@ void __block_invoke_1(struct __block_literal_1 *_block) {
 static struct __block_descriptor_1 {
     unsigned long int reserved;
     unsigned long int Block_size;
-} __block_descriptor_1 = {0, sizeof(struct __block_literal_1), __block_invoke_1 };
+} __block_descriptor_1 = { 0, sizeof(struct __block_literal_1), __block_invoke_1 };
 
-//Note 2
+//注释 2
 struct __block_literal_1 _block_literal = {
      &_NSConcreteStackBlock,
      (1<<29), <uninitialized>,
@@ -156,22 +110,22 @@ struct __block_literal_1 _block_literal = {
 };
 ```
 
-Take a closer look at this rewritten code. The Block before rewriting has no return value and no parameters. Then the actual execution body of the Block is rewritten into a C function, and the parameters are passed to the structure of the Block itself (see Note 1 for details) . Then the actual Block variable is declared as _NSConcreteStackBlock, the flag is set to 1<<29, the invoke pointer points to the execution function, and the descriptor pointer points to the structure generated in the previous step. (1<<29 flag is usually ignored at runtime, so this assignment has no special meaning, it is understandable to avoid uninitialized so setting the flag).
+仔细看这一段重写后的代码，重写前的 Block没有返回值，没有传参，然后 Block的实际执行体被重写成了一个 C函数，传参为 Block的结构自身（详见注释1）。然后实际的 Block变量被声明为 _NSConcreteStackBlock，flag设置为 1<<29，invoke指针指向了执行函数，descriptor指针指向了前一步生成的结构体。（1<<29 flag 在运行时通常被忽略，所以这样赋值并没有什么特殊意义，避免 uninitialized这样设置 flag也可以理解）。
 
-The Clang document mentions the issue of the isa type of Block. This also shows their original intention when designing the Block: when a Block's literal declaration is globally or declared as static, isa points to \_NSConcreteGlobalBlock. In addition, the isa of Block during initialization points to \_NSConcreteStackBlock. The shortcomings are very obvious. They only exist in the stack frame. After the memory is cleared, it cannot be referenced. Therefore, there is a Block_Copy() method in libclosure. Copy to the heap, at this time isa points to _NSConcreteMallocBlock. Although the document says that there are only a limited number of cases where Block is global, it is obvious that the implementation of LLVM in the ARC era is not like this. If Block is defined locally (inside the function body) and automatic variables are not captured, then these Blocks are also global Type of. So what about capturing automatic variables? Obviously it will become a block on the heap. The block on the stack does not seem to exist under ARC (but from the latest LLVM document, it is found that under ARC, the block is initialized with the stack type, but if it is referenced or returned, it will move To the heap, so "the Block on the stack does not exist under ARC, and it is not wrong").
+Clang文档中提到了关于 Block的 isa类型的问题，这里也表明了他们在设计 Block时候的初衷：当一个 Block的字面量声明在全局或声明为 static的时候，isa是指向 \_NSConcreteGlobalBlock的。除此之外，Block在初始化时的 isa都是指向 \_NSConcreteStackBlock的，缺点就非常明显了，只存在于栈帧中，内存清除后肯定就无法引用到了，所以 libclosure中有 Block_Copy()方法将 Block拷贝到堆上，这时候 isa便指向了 _NSConcreteMallocBlock。文档虽然说了只有有限的一两种情况下 Block是全局的，但显然在 ARC时代 LLVM的实现并未如此，如果Block定义在局部（函数体内部）且未捕获自动变量，那么这些 Block也是全局类型的。那么捕获了自动变量呢？显然就会变成堆上的 Block，栈上的 Block在 ARC下貌似是不存在的（不过从最新的 LLVM文档发现，ARC下，Block初始化时是栈类型的，但如果引用或返回，会移动到堆上，所以“栈上的 Block在 ARC下不存在勉强不算错”）。
 
-Let's take a look at how the way Block captures variables affects Block memory management in the ARC era.
+我们接下来看一下 Block捕获变量的方式是如何影响到 ARC时代的 Block内存管理的。
 
-The Clang documentation mentions that when capturing variables that are not marked with __block, the const Copy of the variable is directly imported, such as this example in the documentation:
+Clang文档提到，捕获没有标记 __block的变量时，直接导入了该变量的 const Copy，比如文档中的这个例子：
 
 ```c
 int x = 10;
-void (^vv)(void) = ^{ printf("x is %d\n", x);}
+void (^vv)(void) = ^{ printf("x is %d\n", x); }
 x = 11;
 vv();
 ```
 
-Would be rewritten by Clang as:
+会被 Clang重写为：
 
 ```c
 struct __block_literal_2 {
@@ -190,7 +144,7 @@ void __block_invoke_2(struct __block_literal_2 *_block) {
 static struct __block_descriptor_2 {
     unsigned long int reserved;
     unsigned long int Block_size;
-} __block_descriptor_2 = {0, sizeof(struct __block_literal_2) };
+} __block_descriptor_2 = { 0, sizeof(struct __block_literal_2) };
 ```
 
 ```c
@@ -203,40 +157,40 @@ struct __block_literal_2 __block_literal_2 = {
  };
 ```
 
-Therefore, these variables cannot be changed when the block is executed, which explains why the block does not need the helper functions in the discriptor to help manage the reference count of the variables. In summary, scalar types, structures, unions, and function pointers will only pass a const copy to the Block reference.
+所以在 Block执行的时候并不能更改这些变量，这也解释了 Block为什么不需要 discriptor里面的 helper functions 来帮助管理变量的引用计数。总结来说，纯量类型、结构体、联合体以及函数指针，都只会传递一份 const copy给 Block引用。
 
-But when the object of const copy is another Block, the situation is a bit more troublesome. First, the actual form of Block is a structure pointer. As mentioned earlier, the scalar type will directly pass a const copied value. For Block, When this const structure pointer is passed in, it cannot be used directly at runtime, because you cannot guarantee that the block pointed to by this pointer can be executed correctly. What if the block is released on the stack long ago? So at this time, the block descriptor will generate copy_helper and dispose_helper, copy the memory corresponding to the passed pointer to the heap, keep the correct reference, and correctly release the memory after the end of use. This piece of logic has a corresponding [rewrite code](https://clang.llvm.org/docs/Block-ABI-Apple.html#imported-const-copy-of-block-reference) in the document. Similarly, for the object type of objc, like the Block type, it will be copied once when it is captured by the Block. In order to let the C type recognize that in addition to the Block being copied, the Object will also be copied. It will also be the Object type when executing the copy helper function. Fill in a type called BLOCK_FIELD_IS_OBJECT so that it will not be mistaken for a Block when the subsequent context is executed.
+但当 const copy的对象是另一个 Block时，情况就稍微麻烦一点，首先 Block的实际存在形式是一个结构体指针，前面说过纯量类型会直接传递一个 const copy过的值进来，对于 Block，这个 const结构体指针传进来时在 runtime并不能直接用，因为你并不能保证这个指针指向的 Block能正确执行，万一这个 Block在栈上早就释放了呢？所以这时候 Block的 descriptor就会产生 copy_helper和 dispose_helper，把传递进来的指针对应的内存 copy一份到堆上，保持正确的引用，并且在使用结束后正确释放内存。这一段逻辑在文档中有对应的 [rewrite代码](https://clang.llvm.org/docs/Block-ABI-Apple.html#imported-const-copy-of-block-reference) 。同样地对于 objc的对象类型，和 Block类型一样被 Block捕获时会被 copy一次，为了让 C类型认识除了 Block被 copy还有 Object也会被 copy，在执行 copy helper function的时候还会为 Object类型填上一个类型叫 BLOCK_FIELD_IS_OBJECT，以便后续 context执行时不要把它误认为一个 Block。
 
-As mentioned above, in fact, Block capturing variables is fairly simple, but we forgot one thing. Most of the time we use Block as callbacks and we need to change the value of external variables. A const copy simply cannot meet the needs, and we usually write It is also known that if external variables need to be changed, then a mark such as __block needs to be added. Then what is the principle of this mark? The document also has an introduction.
+如上所述的话其实 Block捕获变量还算简单，但我们忘了一点，大部分时候我们把 Block作为回调使用，需要去改变外部变量的值，一个 const copy根本满足不了需求，而且我们平时写的时候也知道，需要外部变量被改变，那么需要加上 __block这样一个标记，那么这个标记是怎样的原理呢？文档同样也有介绍。
 
-Variables marked by __block will be transformed beyond recognition. Both libclosure and Clang documents have introduced the memory layout of variables after being rewritten:
+__block标记的变量会被改造得面目全非，在 libclosure和 Clang文档里都有介绍变量被改写后的内存布局：
 
 ```c
 struct _block_byref_foo {
     void *isa;
     struct Block_byref *forwarding;
-    int flags; //refcount;
+    int flags;   //refcount;
     int size;
     // helper functions called via Block_copy() and Block_release()
-    void (*byref_keep)(void *dst, void *src);
+    void (*byref_keep)(void  *dst, void *src);
     void (*byref_dispose)(void *);
     typeof(marked_variable) marked_variable;
 };
 ```
 
-You can see that a variable will be rewritten to look like this ghost. The initialization sequence of these variables is as follows:
+可以看到一个变量会被重写成这个鬼样子，关于这些变量的初始化顺序是这样的：
 
-forwarding points to the start address of this structure
-The size variable is set to the size of the structure
-flags is set to 0 or 1<<25 (if helper_functions is needed)
-helper_functions initialization (if needed)
-marked_variable is set to the value of the captured variable
-isa is set to NULL
-This is how the variable is called inside the block
+forwarding指向自己这个结构体的开始地址
+size变量被设置为结构体的大小
+flags被设置为0或 1<<25（如果需要 helper_functions的话）
+helper_functions初始化 （if needed）
+marked_variable设置为捕获变量的值
+isa设置为 NULL
+Block内部在调用这个变量时就是这样的
 
 variable->forwarding.marked_variable = someValue;
 
-Similar to capturing non-__block tag variables, there are also problems with Block and Object types. For example, a Block type:
+和捕获非 __block标记变量类似，此处也有关于 Block类型和 Object类型的困扰。比如一个 Block类型：
 
 ```c
 __block void (voidBlock)(void) = blockA;
@@ -246,7 +200,7 @@ voidBlock = blockB;
 struct _block_byref_voidBlock {
     void *isa;
     struct _block_byref_voidBlock *forwarding;
-    int flags; //refcount;
+    int flags;   //refcount;
     int size;
     void (*byref_keep)(struct _block_byref_voidBlock *dst, struct _block_byref_voidBlock *src);
     void (*byref_dispose)(struct _block_byref_voidBlock *);
@@ -270,14 +224,14 @@ struct _block_byref_voidBlock voidBlock = {( .forwarding=&voidBlock, .flags=(1<<
 voidBlock.forwarding->captured_voidBlock = blockB;
 ```
 
-Obviously, Block, as a reference type, will be copied to the heap after being marked as __block, and the captured Block will manage the memory. As you can imagine, the Object type is basically the same.
+很显然，Block作为一种引用类型，在标记为 __block后，会被 copy到堆上，由捕获的 Block管理内存，可想而知，Object类型也是基本一致的。
 
-After reading so much, it is easy to summarize Block's capture rules for variables:
+看了这么多，很容易总结出 Block对变量的捕获规则：
 
-1. The simplest are global variables and static variables, which can be referenced and modified at will, which is the case everywhere.
+1. 最简单的是 全局变量和 static变量，随意引用和修改，在任何地方都是如此。
 
-2. Context variables, that is, stack variables, const copy, cannot be modified. As mentioned earlier, under ARC, in order to maintain the life cycle of the block and facilitate automatic management, the block will be copied to the heap (in fact, the block is conceptualized as a reference type or object). But at this time, Block will generate strong references when capturing reference types
-3. The context variables marked with \__block will be moved from the stack variable to the heap to ensure complete life cycle access. Apart from worrying about circular references, ARC can clean up the rest.
+2. 上下文变量，也就是栈变量，const copy，不可修改。前面也提到在 ARC下，为了保持 Block的生命周期，便于自动管理，Block会被 copy到堆上（实际上 Block被概念化为一个引用类型或对象）。但此时 Block在捕获引用类型就会产生强引用
+3. \__block标记的上下文变量，会从栈变量挪到堆，以保证完整的生命周期访问。除了要担心循环引用外，剩下的事都可以交给 ARC打扫。
 
-ARC hides too many details for us. In fact, we don't need to care about the specific implementation of Block. But if you are worried, just run over and read it again, and you may be more confident when writing relevant code.
+ARC为我们隐藏了太多的细节，其实我们大可不必关心 Block的具体实现。但如果担心的话，跑过来看一遍，在写相关代码时可能会更有信心一点。
 

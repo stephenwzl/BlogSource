@@ -1,105 +1,105 @@
 ---
-title: Flutter's compilation mode
+title: Flutter的编译模式
 date: 2018-07-30 17:26:22
 tags:
 ---
-People who have used Flutter to build apps must be confused about what the product compiled by Flutter is. Sometimes it is divided into several files, sometimes it is a dynamic library, which is really confusing.
-This article explains in detail the compilation mode of Flutter.
+使用 Flutter构建过 App的人一定有一个困惑，就是 Flutter编译出的产物到底是什么玩意，有时候分为几个文件，有时候是一个动态库，真的叫人摸不着头脑。  
+本文详细解释一下 Flutter的编译模式。  
 
 <!-- more-->
-# Classification of compilation modes.
-A programming language needs to be compiled to be runnable. Generally speaking, there are two types of compilation modes: JIT and AOT.
-## JIT:
-JIT stands for Just In Time (Just In Time), a typical example is v8, which can compile and run JavaScript on the fly. So you only need to enter the source code string, and v8 can help you compile and run the code. Generally speaking, languages ​​that support JIT can support introspection function (eval), which dynamically executes code at runtime.
-The advantage of the JIT model is obvious. It can dynamically issue and execute code regardless of the architecture of the user's machine, providing rich and dynamic content for application users.
-But the disadvantages of JIT are also obvious. A large number of strings of code can easily make the JIT compiler spend a lot of time and memory to compile, and the direct feeling that the user has is that the application starts slowly.
+# 编译模式的分类. 
+编程语言要达到可运行的目的需要经过编译，一般地来说，编译模式分为两类：JIT 和 AOT。  
+## JIT：
+JIT全称 Just In Time(即时编译），典型的例子就是 v8，它可以即时编译并运行 JavaScript。所以你只需要输入源代码字符串，v8就可以帮你编译并运行代码。通常来说，支持 JIT的语言一般能够支持自省函数（eval），在运行时动态地执行代码。  
+JIT模式的优势是显而易见的，可以动态下发和执行代码，而不用管用户的机器是什么架构，为应用的用户提供丰富而动态地内容。  
+但 JIT的劣势也是显而易见的，大量字符串的代码很容易让 JIT编译器花费很多时间和内存进行编译，给用户带来的直接感受就是应用启动慢。  
 
-## AOT:
-The full name of AOT is Ahead Of Time (pre-compilation). A typical example is C/C++, LLVM or GCC compiles and generates C/C++ binary code, and then these binaries can be loaded and executed by the process after they are installed and executed by the user.
-The advantages of AOT are also obvious. The pre-compiled binary code will be loaded and executed very fast. (So ​​the top of the programming language speed rankings are AOT compiled languages) Such speed can bring users a very good experience in intensive computing scenarios, such as engine rendering and logic execution of large games.
+## AOT：
+AOT全称 Ahead Of Time（事前编译），典型的例子就是 C/C++，LLVM或 GCC通过编译并生成 C/C++的二进制代码，然后这些二进制通过用户安装并取得执行权限后才可以通过进程加载执行。  
+AOT的优势也是显而易见的，事先编译好的二进制代码，加载和执行的速度都会非常快。（所以编程语言速度排行榜上前列都是 AOT编译类语言）这样的速度可以在密集计算场景下给用户带来非常好的体验，比如大型游戏的引擎渲染和逻辑执行。  
 
-But the disadvantages of AOT are also obvious. Compilation needs to distinguish the architecture of the user's machine and generate binary codes of different architectures. In addition to the architecture, the binary code itself will also allow users to download larger installation packages. Binary code generally requires execution permissions to be executed, so it cannot be dynamically updated in systems with strict permissions (such as iOS).
+但是 AOT的劣势也是显而易见的，编译需要区分用户机器的架构，生成不同架构的二进制代码，除了架构，二进制代码本身也会让用户下载的安装包比较大。二进制代码一般需要取得执行权限才可以执行，所以无法在权限比较严格的系统中进行动态更新（如 iOS）。
 
-# Dart's compilation mode
-Flutter uses Dart as a programming language, and naturally its compilation mode cannot be separated from Dart. First of all, we need to understand the compilation mode supported by Dart.
+# Dart的编译模式  
+Flutter使用 Dart作为编程语言，自然其编译模式也脱离不了 Dart的干系。首先我们需要了解一下 Dart所支持的编译模式。    
 
-* **Script**: The most common JIT mode. Calling dart vm on the PC command line to execute dart source code files is this mode.
-* **Script Snapshot**: JIT mode. The difference from the previous one is that the tokenized dart source code is loaded here, and the lexer step of the previous step is executed in advance.
-* **Application Snapshot**: JIT mode, which comes from dart vm directly loading the source code and dumping the data. Dart vm will start faster with this kind of data. However, it is worth mentioning that this mode distinguishes architecture, and the data generated on x64 cannot be used by arm.
-* **AOT**: AOT mode, directly compile the dart source code into a .S file, and then generate the code of the corresponding architecture through the assembler.
+* **Script**：最普通的 JIT模式，在 PC命令行调用 dart vm执行 dart源代码文件即是这种模式。
+* **Script Snapshot**：JIT模式，和上一个不同的是，这里载入的是已经 token化的 dart源代码，提前执行了上一步的 lexer步骤。  
+* **Application Snapshot**：JIT模式，这种模式来源于 dart vm直接载入源码后 dump出数据。dart vm通过这种数据启动会更快。不过值得一提的是这种模式是区分架构的，在 x64上生成的数据不可以给 arm使用。
+* **AOT**：AOT模式，直接将 dart源码编译出 .S文件，然后通过汇编器生成对应架构的代码。  
 
-Summarizing the list just now, you can find:
+总结一下刚才的列表，可以发现：  
 
- Mode/Comparison | Compilation Mode | Distinguish Architecture | Pack Size | Dynamic|
-:---: | :---: | :---: | :---:| :---:
-Script | JIT | No | Small | Yes
-Script Snapshot | JIT |No| Very Small| Yes|
-Application Snapshot | JIT |Yes | Larger | Yes (note the architecture)|
-AOT | AOT|Yes|Bigger|No|
+ 模式/比较项| 编译模式 | 区分架构| 打包大小| 动态化|
+:---: | :---: | :---: | :---:| :---: 
+Script | JIT | 否| 小| 是
+Script Snapshot | JIT |否| 很小| 是|
+Application Snapshot |  JIT |是| 比较大| 是（注意架构）|
+AOT |  AOT|是|比较大|否|
 
-# Flutter's compilation mode
-Flutter completely adopts Dart. It is reasonable to say that the compilation mode is consistent, but this is not the case. Due to the ecological differences between the Android and iOS platforms, Flutter has also derived a very rich compilation mode.
+# Flutter的编译模式  
+Flutter 完全采用了 Dart，按道理来说编译模式一致才是，但是事实并不是这样。由于 Android和 iOS平台的生态差异，Flutter也衍生除了非常丰富的编译模式。  
 
-+ **Script**: Same as Dart Script mode. Although Flutter supports it, it hasn't been used yet. After all, it affects startup speed.
-+ **Script Snapshot**: Same as Dart Script Snapshot, and it is also supported but not used. Flutter has a lot of view rendering logic, and pure JIT mode affects the execution speed.
-+ **Kernel Snapshot**: Dart's bytecode mode, unlike Application Snapshot, bytecode mode does not distinguish between architectures. Kernel Snapshot is also called **Core Snapshot** in the Flutter project. The bytecode mode can be classified as AOT compilation.
-+ **Core JIT**: A binary mode of Dart, which packs instruction code and heap data into files, and then loads them when vm and isolate are started, and directly marks the memory as executable. It can be said that this is an AOT mode. Core JIT is also called **AOTBlob**
-+ **AOT Assembly**: Dart's AOT mode. Generate assembly source code files directly and compile them by each platform.
++ **Script**：同 Dart Script模式一致，虽然 Flutter支持，但暂未看到使用，毕竟影响启动速度。  
++ **Script Snapshot**：同 Dart Script Snapshot一致，同样支持但未使用，Flutter有大量的视图渲染逻辑，纯 JIT模式影响执行速度。  
++ **Kernel Snapshot**：Dart的 bytecode 模式，与 Application Snapshot不同，bytecode模式是不区分架构的。 Kernel Snapshot在 Flutter项目内也叫 **Core Snapshot**。bytecode模式可以归类为 AOT编译。
++ **Core JIT**：Dart的一种二进制模式，将指令代码和 heap数据打包成文件，然后在 vm和 isolate启动时载入，直接标记内存可执行，可以说这是一种 AOT模式。Core JIT也被叫做 **AOTBlob**  
++ **AOT Assembly**: 即 Dart的 AOT模式。直接生成汇编源代码文件，由各平台自行汇编。  
 
-It can be seen that Flutter complicates Dart's compilation mode and adds a lot of concepts. It is more difficult to describe it clearly, so we focus on interpreting from the various stages of Flutter application development.
+可以看出来，Flutter将 Dart的编译模式复杂化了，多了不少概念，要一下叙述清楚是比较困难的，所以我们着重从 Flutter应用开发的各个阶段来解读。  
 
-## Compilation mode during development
-In the development phase, we need Flutter's Hot Reload and Hot Restart functions to facilitate rapid UI shaping. At the same time, the framework layer also needs relatively high performance for view rendering. Therefore, in development mode, Flutter uses Kernel Snapshot mode to compile.
-In the packaged product, you will find several things:
-+ **isolate\_snapshot\_data**: used to accelerate isolate startup, business-independent code, fixed, only related to flutter engine version
-+ **platform.dill**: The kernel code related to dart vm is only related to the dart version and engine compiled version. Fixed, business-independent code.
-+ **vm\_snapshot_data**: A product used to accelerate the startup of dart vm, business-independent code, only related to the flutter engine version
-+ **kernel\_blob.bin**: business code product
+## 开发阶段的编译模式  
+在开发阶段，我们需要 Flutter的 Hot Reload和 Hot Restart功能，方便 UI快速成型。同时，框架层也需要比较高的性能来进行视图渲染展现。因此开发模式下，Flutter使用了 Kernel Snapshot模式编译。   
+在打包产物中，你将发现几样东西：  
++ **isolate\_snapshot\_data**：用于加速 isolate启动，业务无关代码，固定，仅和 flutter engine版本有关  
++ **platform.dill**：和 dart vm相关的 kernel代码，仅和 dart版本以及 engine编译版本有关。固定，业务无关代码。  
++ **vm\_snapshot_data**: 用于加速 dart vm启动的产物，业务无关代码，仅和 flutter engine版本有关  
++ **kernel\_blob.bin**：业务代码产物
 
-Project/Platform | Android | iOS
-:---: | :---: | :---:
-Code environment | debug | debug
-Compilation mode | Kernel Snapshot | Kernel Snapshot
-Packaging tool | dart vm (2.0) | dart vm (2.0)
-Flutter command | flutter build bundle | flutter build bundle
-Package product | flutter_assets/* | flutter_assets/*|
+项目/平台 | Android | iOS 
+:---: | :---: | :---:  
+代码环境 | debug | debug
+编译模式 | Kernel Snapshot | Kernel Snapshot
+打包工具 | dart vm (2.0) | dart vm (2.0)
+Flutter命令 | flutter build bundle | flutter build bundle  
+打包产物 | flutter_assets/* | flutter_assets/*|
 
-## Compilation mode in production phase
-In the production phase, the application needs very fast speed, so the Android and iOS targets are unsurprisingly selected for AOT packaging. However, due to different platform characteristics, the packaging model is also worlds apart.
+## 生产阶段的编译模式  
+在生产阶段，应用需要的是非常快的速度，所以 Android和 iOS target毫无意外地都选择了 AOT打包。不过由于平台特性不同，打包模式也是天壤之别。    
 
 
-Project/Platform | Android | iOS|Android(--build-shared-library)
+项目/平台 | Android | iOS|Android(--build-shared-library)    
 :---: | :---: | :---: | :---:
-Code environment | release | release | release
-Compilation Mode | Core JIT | AOT Assembly | AOT Assembly
-Packaging tool | gen_snapshot | gen_snapshot | gen_snapshot
-Flutter command | flutter build aot | flutter build aot --ios | flutter build aot --build-shared-library
-Package product | flutter_assets/* | App.framework | app.so
+代码环境 | release | release | release
+编译模式 | Core JIT | AOT Assembly | AOT Assembly
+打包工具 | gen_snapshot | gen_snapshot | gen_snapshot
+Flutter命令 | flutter build aot | flutter build aot --ios | flutter build aot --build-shared-library
+打包产物 | flutter_assets/* | App.framework | app.so  
 
-First of all, it is easy for us to realize the reason for the practice on the iOS platform: App Store review regulations do not allow dynamic distribution of executable binary code.
-So on iOS, in addition to JavaScript, the runtime implementation of other languages ​​has chosen AOT. (For example, the implementation of OpenJDK in iOS is AOT)
+首先我们很容易认识到 iOS平台上做法的原因：App Store审核条例不允许动态下发可执行二进制代码。  
+所以在 iOS上，除了 JavaScript，其他语言运行时的实现都选择了 AOT。（比如 OpenJDK在 iOS实现就是 AOT）  
 
-On Android, Flutter's approach is interesting: it supports two different ways.
-There are 4 packaged products of **Core JIT**: isolate\_snapshot\_data, vm\_snapshot\_data, isolate\_snapshot\_instr, vm\_snapshot\_instr. There are only 2 products we don’t know: isolate\_snapshot\ _instr and vm\_snapshot\_instr, in fact, they both represent the instructions and other data carried after vm and isolate are started. After loading, you can directly execute the block of memory.
-Android's **AOT Assembly** packaging method is easy to think of the need to support multiple architectures, which undoubtedly increases the code package, and the code needs to be called from JNI, which is far less convenient than Core JIT's Java API. Therefore, Core JIT packaging is used by default on Android instead of AOT Assembly.
+在 Android上，Flutter的做法有点意思：支持了两种不同的路子。  
+**Core JIT**的打包产物有 4个：isolate\_snapshot\_data, vm\_snapshot\_data, isolate\_snapshot\_instr, vm\_snapshot\_instr.  我们不认识的产物只有 2个：isolate\_snapshot\_instr和 vm\_snapshot\_instr，其实它俩代表着 vm和 isolate启动后所承载的指令等数据，在载入后，直接将该块内存执行即可。  
+Android的 **AOT Assembly**打包方式很容易让人想到需要支持多架构，无疑增大了代码包，并且该处代码需要从 JNI调用，远不如 Core JIT的 Java API方便。所以 Android上默认使用 Core JIT打包，而不是 AOT Assembly。  
 
-# Flutter Engine support for compilation mode
-In my last article: [A brief explanation of the principle of Flutter](/2018/05/14/flutter-principle/) mentioned that the engine carries the dart runtime, and there is no doubt that the engine needs to be compatible with the packaged code Number is fine.
-In the engine's compilation mode, Flutter is selected as follows:
+# Flutter Engine对编译模式的支持  
+在我的上篇文章：[Flutter原理简解](/2018/05/14/flutter-principle/)中提到，engine承载了 dart运行时，毫无疑问 engine需要和打包出来的代码对的上号才行。  
+在 engine的编译模式中，Flutter是这样选择的：  
 
-Project/Platform | iOS | Android
+项目/平台 | iOS | Android 
 :---: | :---: | :---:
-Script | Not Supported | Not Supported
-ScriptSnapshot | Theoretical Support | Theoretical Support
-Kernel Snapshot | Support, runmode = dynamic | Support, runmode = dynamic
-CoreJIT | Not Supported | Supported
-AOT Assembly | Support | Support |
+Script | 不支持 | 不支持
+ScriptSnapshot |理论支持 | 理论支持
+Kernel Snapshot | 支持，runmode = dynamic | 支持，runmode = dynamic  
+CoreJIT | 不支持 | 支持
+AOT Assembly | 支持 | 支持 |
 
-So we can see that Flutter's compilation mode is completely designed according to the engine's support.
+所以我们可以看到，Flutter的编译模式是完全根据 Engine的支持度来设计的。  
 
-# In conclusion  
-Seeing this, we can draw a conclusion: Flutter is a high-performance, **cross-platform**, **dynamic** application development program.
-On iOS and Android platforms, dynamization can be completely packaged with Kernel Snapshot, and the product is consistent and universal. However, currently it has been castrated by the packaging tool and can only generate debug products.
-And if dynamization is not required, binary library files with higher execution performance can also be packaged for use. This feature is currently supported
+# 结论  
+看到这里，我们完全可以得出一个结论：Flutter是一种高性能的、**可跨平台的**、**动态化**应用开发方案。  
+在 iOS和 Android平台上，动态化完全可由 Kernel Snapshot打包实现，并且产物是一致通用的。不过目前通过打包工具进行了阉割，只能生成 debug产物。  
+并且如果不需要动态化，同样可以打包出拥有更高执行性能的二进制库文件使用。这个特性目前就已经支持  
 
-With the support of theory, we can start to transform.
+有了理论的支持，我们就可以着手做改造的事了。
